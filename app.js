@@ -36,3 +36,6 @@ document.getElementById('session-start').addEventListener('click',()=>{const res
 document.getElementById('demo-reset').addEventListener('click',()=>{if(!confirm('Reset all virtual contract demo data stored in this browser?'))return;contract=Engine.freshState();saveContract();renderContract()});
 renderContract();
 setInterval(()=>{if(contract.session&&Date.now()>=contract.session.endsAt){const result=Engine.completeDueSession(contract,Date.now());contract=result.state;if(result.completed)saveContract()}if(document.getElementById('contract').classList.contains('active'))renderContract()},1000);
+
+// Load the Firebase account interface independently from the contract demo.
+import('./auth.js').catch((error)=>console.error('Firebase authentication UI failed to load:',error));
