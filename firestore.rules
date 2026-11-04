@@ -21,8 +21,8 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time
         && (request.resource.data.referredBy == null
-          || (exists(/databases/$(database)/documents/referralCodes/$(request.resource.data.referredBy))
-            && get(/databases/$(database)/documents/referralCodes/$(request.resource.data.referredBy)).data.uid != uid));
+          || (exists(/databases/$(database)/documents/users/$(request.resource.data.referredBy))
+            && request.resource.data.referredBy != uid));
       allow update: if ownerAdmin()
         || (signedIn() && request.auth.uid == uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["displayName","updatedAt"])
@@ -60,11 +60,20 @@ service cloud.firestore {
         && request.resource.data.status == "pending"
         && request.resource.data.createdAt == request.time;
       allow read: if ownerAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
-      allow update: if ownerAdmin()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","reviewedAt","reviewedBy"])
-        && request.resource.data.status in ["approved","rejected"]
-        && request.resource.data.reviewedBy == request.auth.uid
-        && request.resource.data.reviewedAt == request.time;
+      allow update: if (ownerAdmin()
+          && resource.data.status == "pending"
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","reviewedAt","reviewedBy"])
+          && request.resource.data.status in ["approved","rejected"]
+          && request.resource.data.reviewedBy == request.auth.uid
+          && request.resource.data.reviewedAt == request.time)
+        || (signedIn()
+          && resource.data.uid == request.auth.uid
+          && resource.data.status in ["approved","rejected"]
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["planId","status","displayName","email","createdAt"])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.planId in ["starter","pro"]
+          && request.resource.data.status == "pending"
+          && request.resource.data.createdAt == request.time);
       allow delete: if false;
     }
     match /memberships/{uid} {
