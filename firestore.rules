@@ -1,0 +1,129 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function ownerAdmin() {
+      return signedIn()
+        && request.auth.token.email == "dangerahmaddon1@gmail.com"
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == "google.com";
+    }
+    match /users/{uid} {
+      allow read: if (signedIn() && request.auth.uid == uid) || ownerAdmin();
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(["uid","email","displayName","referralCode","referredBy","createdAt","updatedAt"])
+        && request.resource.data.uid == uid
+        && request.resource.data.referralCode is string
+        && request.resource.data.referralCode.matches("^[A-Z2-9]{6}$")
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && (request.resource.data.referredBy == null
+          || (exists(/databases/$(database)/documents/users/$(request.resource.data.referredBy))
+            && request.resource.data.referredBy != uid));
+      allow update: if ownerAdmin()
+        || (signedIn() && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["displayName","updatedAt"])
+          && request.resource.data.updatedAt == request.time);
+      allow delete: if false;
+    }
+    match /referralCodes/{code} {
+      // Members may resolve a code they were given, but cannot enumerate all users' codes.
+      allow get: if signedIn();
+      allow list: if ownerAdmin();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(["uid","createdAt"])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && code.matches("^[A-Z2-9]{6}$");
+      allow update, delete: if false;
+    }
+    match /referralEvents/{referredUid} {
+      allow read: if ownerAdmin()
+        || (signedIn() && (resource.data.referrerUid == request.auth.uid || resource.data.referredUid == request.auth.uid));
+      allow create: if signedIn()
+        && referredUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(["referrerUid","referredUid","referralCode","createdAt"])
+        && request.resource.data.referredUid == request.auth.uid
+        && request.resource.data.referrerUid is string
+        && request.resource.data.referrerUid != request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/referralCodes/$(request.resource.data.referralCode))
+        && get(/databases/$(database)/documents/referralCodes/$(request.resource.data.referralCode)).data.uid == request.resource.data.referrerUid;
+      allow update, delete: if false;
+    }
+    match /membershipRequests/{requestId} {
+      allow create: if signedIn()
+        && requestId == request.auth.uid
+        && request.resource.data.keys().hasOnly(["uid","planId","status","displayName","email","createdAt"])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.planId in ["starter","pro"]
+        && request.resource.data.status == "pending"
+        && request.resource.data.createdAt == request.time;
+      allow read: if ownerAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update: if (ownerAdmin()
+          && resource.data.status == "pending"
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","reviewedAt","reviewedBy"])
+          && request.resource.data.status in ["approved","rejected"]
+          && request.resource.data.reviewedBy == request.auth.uid
+          && request.resource.data.reviewedAt == request.time)
+        || (signedIn()
+          && requestId == request.auth.uid
+          && resource.data.uid == request.auth.uid
+          && resource.data.status in ["approved","rejected"]
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["planId","status","displayName","email","createdAt"])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.planId in ["starter","pro"]
+          && request.resource.data.status == "pending"
+          && request.resource.data.createdAt == request.time);
+      allow delete: if false;
+    }
+    match /memberships/{uid} {
+      allow read: if ownerAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create, update: if ownerAdmin()
+        && request.resource.data.uid == uid
+        && request.resource.data.planId in ["starter","pro"]
+        && request.resource.data.status == "active";
+      allow delete: if false;
+    }
+    match /withdrawalRequests/{requestId} {
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(["uid","email","amount","asset","network","walletAddress","status","createdAt"])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.amount is number
+        && request.resource.data.amount >= 5
+        && request.resource.data.amount <= 100000
+        && request.resource.data.asset == "USDT"
+        && request.resource.data.network in ["TRC20","BEP20","ERC20"]
+        && request.resource.data.walletAddress is string
+        && request.resource.data.walletAddress.size() >= 12
+        && request.resource.data.walletAddress.size() <= 180
+        && request.resource.data.status == "pending"
+        && request.resource.data.createdAt == request.time;
+      allow read: if ownerAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update: if (ownerAdmin()
+          && resource.data.status == "pending"
+          && request.resource.data.status in ["approved","rejected"]
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","reviewedAt","reviewedBy"])
+          && request.resource.data.reviewedAt == request.time
+          && request.resource.data.reviewedBy == request.auth.uid)
+        || (ownerAdmin()
+          && resource.data.status == "approved"
+          && request.resource.data.status == "paid"
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","paymentReference","paidAt","reviewedAt","reviewedBy"])
+          && request.resource.data.paymentReference is string
+          && request.resource.data.paymentReference.size() >= 6
+          && request.resource.data.paymentReference.size() <= 200
+          && request.resource.data.paidAt == request.time
+          && request.resource.data.reviewedAt == request.time
+          && request.resource.data.reviewedBy == request.auth.uid);
+      allow delete: if false;
+    }
+    match /adminAuditLogs/{logId} {
+      allow read, create: if ownerAdmin();
+      allow update, delete: if false;
+    }
+  }
+}

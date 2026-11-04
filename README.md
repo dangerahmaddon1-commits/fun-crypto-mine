@@ -10,9 +10,11 @@ The site is a static responsive prototype with a browser-only virtual contract d
 
 Visitors who are signed out can access only the public overview, membership information and help/rules. The dashboard, rewards, mining hub, virtual contract, wallet, activity ledger and account settings require Firebase sign-in. Authentication state is checked through Firebase Auth; the browser UI gate is not a substitute for server-side authorization.
 
-The Admin console is hidden except for the verified Google identity `dangerahmaddon1@gmail.com`. This is a client-side visibility restriction only. There are no privileged backend actions or financial controls in this prototype; any future admin operation must enforce authorization with server-side Firebase custom claims or an equivalent trusted role check.
+The Admin console is shown only to the verified Google identity `dangerahmaddon1@gmail.com`, with Firestore rules independently enforcing owner access. This is the current first factor, not complete multi-factor protection. A second admin verification step must use Firebase Authentication MFA or a trusted server-side challenge/custom-claim flow; never embed an admin password or secret in client JavaScript. Until that is implemented, treat owner access as needing additional hardening.
 
 ## SEO and analytics
+
+The public page now references the square `logo.svg` brand asset as its favicon, social preview image and Organization structured-data logo. Google may choose whether to display it and can take time to recrawl the site; this markup does not guarantee a branded search result.
 
 The public overview includes a canonical URL, descriptive title and metadata, Open Graph/Twitter metadata and WebSite structured data. `robots.txt` and `sitemap.xml` expose the public homepage to crawlers. Vercel Web Analytics' script snippet was already present in `index.html`; it has been retained without adding a duplicate. Analytics data collection still depends on enabling Web Analytics for the project in the Vercel dashboard.
 
@@ -44,6 +46,24 @@ A client-side ad-blocker bait check displays a full-screen access notice and ret
 Do not accept deposits, sell mining contracts, issue tokens, activate paid subscriptions or process withdrawals until legal, licensing, tax, privacy, security, provider and operational requirements have been reviewed and approved. Never present virtual mining visuals as actual mining or promise fixed returns.
 
 Production contract progress must be server-authoritative. Do not trust browser clocks, localStorage, client-calculated balances or client-submitted session completions. Use immutable, idempotent ledger events, signed provider webhooks, reconciliation, risk controls and admin audit logs. Keep non-cash demo points separate from any future financial ledger.
+
+
+## Firestore member data foundation
+
+The member data module uses the existing Firebase project `fun-crypto` and its default Cloud Firestore database. It creates a minimal user profile, a unique invite code, one-time referral attribution, membership requests and owner-managed membership records. It does not create financial balances, reward credits, purchases or payouts.
+
+### Publish Firestore rules
+
+The repository includes `firestore.rules` and `firebase.json`. Publish the rules to the existing `(default)` database before testing member data. You can use Firebase Console → Firestore Database → Rules and paste the contents of `firestore.rules`, then Publish. Do not use test mode. The rules restrict member profile reads/writes to the owner, referrals to the parties involved, and membership administration to the verified owner Google identity `dangerahmaddon1@gmail.com`. Client-side hiding is not the security boundary.
+
+The owner must sign in with Google using that exact verified address for Firestore admin permissions. Email/password sign-in alone is not sufficient.
+
+### Membership and referrals status
+
+- Invite codes and referral attribution are for tracking only. No referral commissions or rewards are active.
+- Membership requests are requests for manual review, not purchases. There is no checkout or payment collection.
+- Only the owner can activate or reject a membership request. Activation is a manual account entitlement and must follow independently verified payment or an explicitly complimentary decision.
+- Withdrawal requests are an intake queue only: the site does not calculate eligible balances, reserve funds, or send crypto. The owner must independently verify source funds, eligibility, destination and network before approving; marking paid requires an external transaction reference. No payout is promised.
 
 ## Deploy
 
