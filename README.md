@@ -45,6 +45,24 @@ Do not accept deposits, sell mining contracts, issue tokens, activate paid subsc
 
 Production contract progress must be server-authoritative. Do not trust browser clocks, localStorage, client-calculated balances or client-submitted session completions. Use immutable, idempotent ledger events, signed provider webhooks, reconciliation, risk controls and admin audit logs. Keep non-cash demo points separate from any future financial ledger.
 
+
+## Firestore member data foundation
+
+The member data module uses the existing Firebase project `fun-crypto` and its default Cloud Firestore database. It creates a minimal user profile, a unique invite code, one-time referral attribution, membership requests and owner-managed membership records. It does not create financial balances, reward credits, purchases or payouts.
+
+### Publish Firestore rules
+
+The repository includes `firestore.rules` and `firebase.json`. Publish the rules to the existing `(default)` database before testing member data. You can use Firebase Console → Firestore Database → Rules and paste the contents of `firestore.rules`, then Publish. Do not use test mode. The rules restrict member profile reads/writes to the owner, referrals to the parties involved, and membership administration to the verified owner Google identity `dangerahmaddon1@gmail.com`. Client-side hiding is not the security boundary.
+
+The owner must sign in with Google using that exact verified address for Firestore admin permissions. Email/password sign-in alone is not sufficient.
+
+### Membership and referrals status
+
+- Invite codes and referral attribution are for tracking only. No referral commissions or rewards are active.
+- Membership requests are requests for manual review, not purchases. There is no checkout or payment collection.
+- Only the owner can activate or reject a membership request. Activation is a manual account entitlement and must follow independently verified payment or an explicitly complimentary decision.
+- No financial balance, withdrawal eligibility or payout is implemented. Wallet and withdrawal controls remain disabled until a trustworthy server-authoritative ledger and the necessary approvals exist.
+
 ## Deploy
 
 Static site entry point: `index.html`. No build command is required. Changes are developed on a feature branch and must be reviewed before merging.
