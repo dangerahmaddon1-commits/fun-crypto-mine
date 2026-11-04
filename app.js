@@ -39,3 +39,18 @@ setInterval(()=>{if(contract.session&&Date.now()>=contract.session.endsAt){const
 
 // Load the Firebase account interface independently from the contract demo.
 import('./auth.js').catch((error)=>console.error('Firebase authentication UI failed to load:',error));
+
+const authNotice=document.querySelector('.side-note');
+if(authNotice)authNotice.innerHTML='<b>● Prototype mode</b><br>Firebase sign-in is enabled in this preview. Mining, rewards, subscriptions and payouts remain disabled.';
+const systemStatus=document.querySelector('.top-right .status');
+if(systemStatus)systemStatus.textContent='● Firebase auth · Demo mode';
+const dashboardNotice=document.querySelector('#dashboard .notice div');
+if(dashboardNotice)dashboardNotice.innerHTML='<strong>Preview only — no real earnings yet.</strong> Firebase sign-in is available. Balances, subscriptions, mining and crypto payouts are not active. No income is promised.';
+const settingsIntro=document.querySelector('#settings .intro');
+if(settingsIntro)settingsIntro.textContent='Manage your Firebase account using the Account control in the top-right. Your sign-in identity is handled by Firebase Authentication. Contract progress is still stored locally on this device and is not synced to your account.';
+const settingsEmail=document.querySelector('#settings input[disabled]');
+if(settingsEmail){settingsEmail.placeholder='Use the Account control above';settingsEmail.disabled=true}
+const settingsTag=document.querySelector('#settings .tag');
+if(settingsTag){settingsTag.textContent='Firebase Authentication enabled';settingsTag.classList.remove('wait')}
+const activityEmpty=document.querySelector('#activity .empty');
+if(activityEmpty)activityEmpty.innerHTML='<b>No financial ledger entries</b>Firebase accounts are enabled, but no reward credits, conversions, reversals or payouts exist in this prototype.';
