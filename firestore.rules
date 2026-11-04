@@ -54,6 +54,7 @@ service cloud.firestore {
     }
     match /membershipRequests/{requestId} {
       allow create: if signedIn()
+        && requestId == request.auth.uid
         && request.resource.data.keys().hasOnly(["uid","planId","status","displayName","email","createdAt"])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.planId in ["starter","pro"]
@@ -67,6 +68,7 @@ service cloud.firestore {
           && request.resource.data.reviewedBy == request.auth.uid
           && request.resource.data.reviewedAt == request.time)
         || (signedIn()
+          && requestId == request.auth.uid
           && resource.data.uid == request.auth.uid
           && resource.data.status in ["approved","rejected"]
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["planId","status","displayName","email","createdAt"])
