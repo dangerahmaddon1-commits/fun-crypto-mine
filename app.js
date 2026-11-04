@@ -1,8 +1,38 @@
 const nav=[...document.querySelectorAll('[data-view]')],views=[...document.querySelectorAll('.view')],side=document.getElementById('side'),title=document.getElementById('title');
-function show(id){views.forEach(v=>v.classList.toggle('active',v.id===id));nav.forEach(b=>b.classList.toggle('active',b.dataset.view===id));const b=nav.find(x=>x.dataset.view===id);title.textContent=b?b.textContent.trim():id;side.classList.remove('open');scrollTo({top:0,behavior:'smooth'});if(id==='contract')renderContract()}
+let currentUser=null,isOwnerAdmin=false;
+const ownerEmail='dangerahmaddon1@gmail.com';
+const publicViews=new Set(['public','plans','help']);
+function openSignup(){window.dispatchEvent(new CustomEvent('fcm-open-auth',{detail:{mode:'signup'}}))}
+function show(id){
+ const target=document.getElementById(id);
+ const memberView=target?.classList.contains('member-view');
+ const adminView=target?.classList.contains('admin-only');
+ if(memberView&&!currentUser){openSignup();return}
+ if(adminView&&!isOwnerAdmin){show(currentUser?'dashboard':'public');return}
+ if(!target||target.hidden)return;
+ views.forEach(v=>v.classList.toggle('active',v.id===id));
+ nav.forEach(b=>b.classList.toggle('active',b.dataset.view===id));
+ const b=nav.find(x=>x.dataset.view===id);title.textContent=b?b.textContent.trim():id;
+ side.classList.remove('open');scrollTo({top:0,behavior:'smooth'});
+ if(id==='contract')renderContract()
+}
+function applyAccess(user){
+ currentUser=user||null;
+ const googleProvider=!!user?.providerData?.some(p=>p.providerId==='google.com');
+ isOwnerAdmin=!!user&&String(user.email||'').toLowerCase()===ownerEmail&&user.emailVerified===true&&googleProvider;
+ document.querySelectorAll('.member-only').forEach(el=>el.hidden=!currentUser);
+ document.querySelectorAll('.member-view').forEach(el=>el.hidden=!currentUser);
+ document.querySelectorAll('.admin-only').forEach(el=>el.hidden=!isOwnerAdmin);
+ const note=document.getElementById('side-note');
+ if(note)note.innerHTML=currentUser?'<b>● Member preview</b><br>Account access enabled. Mining, rewards, subscriptions and payouts remain disabled.':'<b>● Public preview</b><br>Read the project information and rules. Create an account to enter the member workspace.';
+ show(currentUser?'dashboard':'public');
+}
+window.addEventListener('fcm-auth-state',event=>applyAccess(event.detail?.user||null));
+
 nav.forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go)));
 document.getElementById('menu').addEventListener('click',()=>side.classList.toggle('open'));
+applyAccess(null);
 const CONTRACT_KEY='fcm_virtual_contract_demo_v1',Engine=window.FCMContractEngine;
 let storageAvailable=true;
 function loadContract(){try{return Engine.sanitizeState(JSON.parse(localStorage.getItem(CONTRACT_KEY)))}catch(error){storageAvailable=false;return Engine.freshState()}}
@@ -34,7 +64,6 @@ else{const empty=document.createElement('div'),bold=document.createElement('b');
 }
 document.getElementById('session-start').addEventListener('click',()=>{const result=Engine.startSession(contract,Date.now());contract=result.state;saveContract();if(!result.ok){const messages={session_active:'A session is already running.',cycle_complete:'This demo cycle is complete.',daily_limit:'You have used all three demo activations for today.'};document.getElementById('session-message').textContent=messages[result.reason]||'Unable to start a session.'}renderContract()});
 document.getElementById('demo-reset').addEventListener('click',()=>{if(!confirm('Reset all virtual contract demo data stored in this browser?'))return;contract=Engine.freshState();saveContract();renderContract()});
-renderContract();
 setInterval(()=>{if(contract.session&&Date.now()>=contract.session.endsAt){const result=Engine.completeDueSession(contract,Date.now());contract=result.state;if(result.completed)saveContract()}if(document.getElementById('contract').classList.contains('active'))renderContract()},1000);
 
 // Load the Firebase account interface independently from the contract demo.
