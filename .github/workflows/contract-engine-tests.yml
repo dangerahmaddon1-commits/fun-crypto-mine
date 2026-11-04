@@ -1,0 +1,22 @@
+name: Contract engine tests
+
+on:
+  push:
+    branches: [main, codex/fcm-mvp-foundation]
+  pull_request:
+    branches: [main]
+
+jobs:
+  contract-engine:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check JavaScript syntax
+        run: node --check contract-engine.js && node --check app.js && node --check auth.js
+      - name: Run contract engine tests
+        run: node --test tests/contract-engine.test.cjs
