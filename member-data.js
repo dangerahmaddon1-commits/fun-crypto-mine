@@ -2,7 +2,7 @@ import { getApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.j
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, runTransaction, collection, query,
-  where, getDocs, addDoc, updateDoc, serverTimestamp, Timestamp, limit
+  where, getDocs, setDoc, runTransaction, serverTimestamp, Timestamp, limit
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const auth=getAuth(getApp());
@@ -134,13 +134,17 @@ async function requestMembership(planId){
   const button=document.querySelector('[data-membership-request="'+planId+'"]');
   if(button)button.disabled=true;
   try{
-    const pending=query(collection(db,"membershipRequests"),where("uid","==",activeUser.uid),where("status","==","pending"),limit(1));
-    const existing=await getDocs(pending);
-    if(!existing.empty)throw new Error("You already have a pending membership request.");
-    await addDoc(collection(db,"membershipRequests"),{
-      uid:activeUser.uid,planId,status:"pending",
-      displayName:activeUser.displayName||"",email:activeUser.email||"",
-      createdAt:serverTimestamp()
+    const requestRef=doc(db,"membershipRequests",activeUser.uid);
+    await runTransaction(db,async transaction=>{
+      const existing=await transaction.get(requestRef);
+      if(existing.exists()&&existing.data().status==="pending")throw new Error("You already have a pending membership request.");
+      const requestData={
+        uid:activeUser.uid,planId,status:"pending",
+        displayName:activeUser.displayName||"",email:activeUser.email||"",
+        createdAt:serverTimestamp()
+      };
+      if(existing.exists())transaction.update(requestRef,requestData);
+      else transaction.set(requestRef,requestData);
     });
     if(button)button.textContent="Request submitted";
     await loadMembershipRequests();
@@ -225,4 +229,4 @@ async function boot(user){
 }
 document.querySelectorAll("[data-membership-request]").forEach(button=>button.addEventListener("click",()=>requestMembership(button.dataset.membershipRequest)));
 onAuthStateChanged(auth,user=>{boot(user).catch(error=>console.error(error))});
-window.addEventListener("fcm-auth-state",event=>{if(event.detail?.user!==activeUser)boot(event.detail?.user||null).catch(error=>console.error(error))});
+
