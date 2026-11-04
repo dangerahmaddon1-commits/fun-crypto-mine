@@ -61,7 +61,7 @@ The owner must sign in with Google using that exact verified address for Firesto
 - Invite codes and referral attribution are for tracking only. No referral commissions or rewards are active.
 - Membership requests are requests for manual review, not purchases. There is no checkout or payment collection.
 - Only the owner can activate or reject a membership request. Activation is a manual account entitlement and must follow independently verified payment or an explicitly complimentary decision.
-- No financial balance, withdrawal eligibility or payout is implemented. Wallet and withdrawal controls remain disabled until a trustworthy server-authoritative ledger and the necessary approvals exist.
+- Withdrawal requests are an intake queue only: the site does not calculate eligible balances, reserve funds, or send crypto. The owner must independently verify source funds, eligibility, destination and network before approving; marking paid requires an external transaction reference. No payout is promised.
 
 ## Deploy
 
