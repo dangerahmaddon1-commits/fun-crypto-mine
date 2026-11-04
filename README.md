@@ -24,7 +24,7 @@ A client-side ad-blocker bait check displays a full-screen access notice and ret
 
 ## Virtual free-contract demo
 
-- One session lasts 8 hours.
+- One new session lasts 1 hour. Existing browser-local 8-hour demo sessions are allowed to finish after the duration change; new sessions use the 1-hour duration.
 - Each completed session awards 10 simulated points.
 - Up to three sessions may be started per local calendar date.
 - A local date counts as one active day after at least one session started on that date completes.
@@ -92,3 +92,12 @@ Redeploy the relevant Vercel environment after adding or changing either variabl
 After deployment, sign in using the owner Google account, open **Account**, enter the separate admin password and choose **Verify admin access**. The second-factor session lasts 15 minutes. When it expires, sign in with Google again and repeat verification. Do not share the second-factor password with anyone.
 
 **Important:** Firebase Admin SDK service-account credentials grant broad project privileges. Use a dedicated service account with only the permissions needed for Firebase Authentication custom-token creation and Firestore access, restrict who can view Vercel environment variables, and rotate the key if it is exposed. If you do not want to manage service-account credentials, leave the admin console locked until a managed identity/MFA solution is configured.
+
+
+## Admin operations overview and membership requests
+
+The owner-only Admin console reads aggregate Firestore counts for total registered profiles, profiles created in the last 30 days, active membership records, pending membership requests, open withdrawal requests (pending or approved), and tracked referral sign-ups. The owner can refresh these counts and both review queues. These are account/Firestore counts, not visitor analytics; Vercel Web Analytics is a separate traffic metric.
+
+Signed-in members can submit a Starter or Pro membership review request. Requests are manual-review intake only: they do not collect payment, activate a paid plan, or promise higher rewards. The owner queue can approve or reject requests, and an approved entitlement lasts 30 days.
+
+Withdrawal requests remain manual-review intake only. An approved request is not paid until the owner has independently sent funds and records an external transaction reference. No balance calculation, automated payout, or withdrawable reward ledger is enabled.
