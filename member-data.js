@@ -196,7 +196,7 @@ async function loadAdminOverview(){
     const counts=await Promise.all([
       getCountFromServer(collection(db,"users")),
       getCountFromServer(query(collection(db,"users"),where("createdAt",">=",since))),
-      getCountFromServer(query(collection(db,"memberships"),where("status","==","active"))),
+      getCountFromServer(query(collection(db,"memberships"),where("expiresAt",">",Timestamp.now()))),
       getCountFromServer(query(collection(db,"membershipRequests"),where("status","==","pending"))),
       getCountFromServer(query(collection(db,"withdrawalRequests"),where("status","in",["pending","approved"]))),
       getCountFromServer(collection(db,"referralEvents"))
