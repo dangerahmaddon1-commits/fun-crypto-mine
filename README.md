@@ -4,7 +4,7 @@ A separate, compliance-first rewards platform prototype.
 
 ## Current state
 
-The site is a static responsive prototype with a browser-only virtual contract demonstration. It is not connected to authentication, advertising providers, offerwalls, mining infrastructure, payment processors or cryptocurrency wallets. Demo points are stored in the visitor's browser, are editable/resettable, have no monetary value and are not withdrawable. No balances, earnings, payouts, mining output or subscription purchases are real.
+The site is a static responsive prototype with a browser-only virtual contract demonstration. Firebase Authentication is connected in the preview for email/password and Google sign-in. User profile names are stored in Firebase Auth. Contract progress is still browser-local and is not synced to accounts. It is not connected to advertising providers, offerwalls, mining infrastructure, payment processors or cryptocurrency wallets. Demo points are stored in the visitor's browser, are editable/resettable, have no monetary value and are not withdrawable. No balances, earnings, payouts, mining output or subscription purchases are real.
 
 ## Virtual free-contract demo
 
