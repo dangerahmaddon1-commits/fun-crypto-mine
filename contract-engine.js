@@ -4,7 +4,8 @@
   root.FCMContractEngine=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
-  const SESSION_MS=8*60*60*1000;
+  const SESSION_MS=60*60*1000;
+  const LEGACY_SESSION_MS=8*60*60*1000;
   const POINTS_PER_SESSION=10;
   const MAX_SESSIONS_PER_DAY=3;
   const REQUIRED_ACTIVE_DAYS=30;
@@ -20,8 +21,8 @@
     const sessionsByDay={};
     Object.entries(input.sessionsByDay).forEach(([day,count])=>{if(validDay(day)&&Number.isInteger(count)&&count>=0&&count<=MAX_SESSIONS_PER_DAY)sessionsByDay[day]=count;});
     let session=null;
-    if(input.session&&validDay(input.session.day)&&Number.isFinite(input.session.startedAt)&&Number.isFinite(input.session.endsAt)&&input.session.endsAt-input.session.startedAt===SESSION_MS){
-      session={day:input.session.day,startedAt:input.session.startedAt,endsAt:input.session.endsAt};
+    if(input.session&&validDay(input.session.day)&&Number.isFinite(input.session.startedAt)&&Number.isFinite(input.session.endsAt)&&[SESSION_MS,LEGACY_SESSION_MS].includes(input.session.endsAt-input.session.startedAt)){
+      session={day:input.session.day,startedAt:input.session.startedAt,endsAt:input.session.endsAt,durationMs:input.session.endsAt-input.session.startedAt};
     }
     const history=input.history.filter(entry=>entry&&validDay(entry.day)&&typeof entry.type==='string').slice(0,12).map(entry=>({
       type:entry.type==='Session completed'?'Session completed':'Session activated',
@@ -50,7 +51,7 @@
     const started=state.sessionsByDay[day]||0;
     if(started>=MAX_SESSIONS_PER_DAY)return {state,ok:false,reason:'daily_limit'};
     state.sessionsByDay[day]=started+1;
-    state.session={day,startedAt:now,endsAt:now+SESSION_MS};
+    state.session={day,startedAt:now,endsAt:now+SESSION_MS,durationMs:SESSION_MS};
     state.history.unshift({type:'Session activated',day,at:now,points:0});
     state.history=state.history.slice(0,12);
     return {state,ok:true,reason:null};
@@ -77,5 +78,5 @@
     const seconds=Math.max(0,Math.floor(milliseconds/1000));
     return [Math.floor(seconds/3600),Math.floor(seconds%3600/60),seconds%60].map(value=>String(value).padStart(2,'0')).join(':');
   }
-  return {SESSION_MS,POINTS_PER_SESSION,MAX_SESSIONS_PER_DAY,REQUIRED_ACTIVE_DAYS,localDay,freshState,sanitizeState,completeDueSession,startSession,snapshot,formatRemaining};
+  return {SESSION_MS,LEGACY_SESSION_MS,POINTS_PER_SESSION,MAX_SESSIONS_PER_DAY,REQUIRED_ACTIVE_DAYS,localDay,freshState,sanitizeState,completeDueSession,startSession,snapshot,formatRemaining};
 });
