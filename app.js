@@ -59,10 +59,10 @@ document.getElementById('contract-status-note').textContent=done?'Demo cycle com
 document.getElementById('contract-progress-label').textContent=state.progressPercent+'% complete';
 document.getElementById('contract-progress-bar').style.width=state.progressPercent+'%';
 document.getElementById('session-state').textContent=active?'SESSION ACTIVE':'READY TO START';
-document.getElementById('session-timer').textContent=active?Engine.formatRemaining(state.session.endsAt-Date.now()):'08:00:00';
+document.getElementById('session-timer').textContent=active?Engine.formatRemaining(state.session.endsAt-Date.now()):'01:00:00';
 document.getElementById('session-description').textContent=active?'Your demo session ends at '+new Date(state.session.endsAt).toLocaleString()+' on this device.':'Start a virtual session. Completion awards 10 simulated points.';
 document.getElementById('session-start').disabled=active||state.sessionsStartedToday>=state.maxSessionsPerDay||done;
-document.getElementById('session-start').textContent=active?'Session running':state.sessionsStartedToday>=state.maxSessionsPerDay?'Daily session limit reached':done?'Cycle completed':'Activate 8-hour session';
+document.getElementById('session-start').textContent=active?'Session running':state.sessionsStartedToday>=state.maxSessionsPerDay?'Daily session limit reached':done?'Cycle completed':'Activate 1-hour session';
 document.getElementById('session-message').textContent=active?'Timer continues if you close this page.':state.sessionsStartedToday>=state.maxSessionsPerDay?'You have used all three demo activations for today.':storageAvailable?'No active session.':'Browser storage is unavailable; demo progress may be lost.';
 const complete=document.getElementById('contract-complete');complete.classList.toggle('contract-complete',done);complete.replaceChildren();
 const completeTitle=document.createElement('b');completeTitle.textContent=done?'Demo cycle completed':'Cycle not yet complete';
