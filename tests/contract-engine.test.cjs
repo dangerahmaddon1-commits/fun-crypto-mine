@@ -7,11 +7,11 @@ const dayStart = (day) => {
   return new Date(year, month - 1, date, 0, 0, 0, 0).getTime();
 };
 
-test('a session lasts eight hours and awards ten points only after expiry', () => {
+test('a session lasts one hour and awards ten points only after expiry', () => {
   const start = dayStart('2026-11-04') + 12 * 60 * 60 * 1000;
   const activated = Engine.startSession(Engine.freshState(), start);
   assert.equal(activated.ok, true);
-  assert.equal(activated.state.session.endsAt - activated.state.session.startedAt, 8 * 60 * 60 * 1000);
+  assert.equal(activated.state.session.endsAt - activated.state.session.startedAt, 60 * 60 * 1000);
   const early = Engine.completeDueSession(activated.state, start + Engine.SESSION_MS - 1);
   assert.equal(early.completed, false);
   assert.equal(early.state.points, 0);
@@ -47,7 +47,7 @@ test('multiple completed sessions on one date award points but count one active 
   const start = dayStart('2026-11-04');
   let state = Engine.freshState();
   for (let index = 0; index < 3; index += 1) {
-    const activationTime = start + index * 8 * 60 * 60 * 1000;
+    const activationTime = start + index * 60 * 60 * 1000;
     const activation = Engine.startSession(state, activationTime);
     assert.equal(activation.ok, true);
     state = Engine.completeDueSession(activation.state, activationTime + Engine.SESSION_MS).state;
@@ -95,4 +95,20 @@ test('malformed browser state is sanitized before it reaches the UI', () => {
   assert.equal(sanitized.session, null);
   assert.equal(sanitized.history[0].type, 'Session activated');
   assert.equal(sanitized.history[0].points, 0);
+});
+
+test('an existing eight-hour browser session survives the one-hour migration and finishes at its original end time', () => {
+  const start = dayStart('2026-11-04') + 12 * 60 * 60 * 1000;
+  const legacy = {
+    ...Engine.freshState(),
+    sessionsByDay: { '2026-11-04': 1 },
+    session: { day: '2026-11-04', startedAt: start, endsAt: start + Engine.LEGACY_SESSION_MS }
+  };
+  const migrated = Engine.sanitizeState(legacy);
+  assert.equal(migrated.session.durationMs, Engine.LEGACY_SESSION_MS);
+  const early = Engine.completeDueSession(migrated, start + Engine.SESSION_MS);
+  assert.equal(early.completed, false);
+  const completed = Engine.completeDueSession(early.state, start + Engine.LEGACY_SESSION_MS);
+  assert.equal(completed.completed, true);
+  assert.equal(completed.state.points, 10);
 });
