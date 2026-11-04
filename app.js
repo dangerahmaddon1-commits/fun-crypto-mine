@@ -27,7 +27,9 @@ async function applyAccess(user){
    isOwnerAdmin=String(user.email||'').toLowerCase()===ownerEmail&&token.claims.email_verified===true&&token.claims.firebase?.sign_in_provider==='google.com';
   }catch(error){console.warn('Could not verify owner sign-in provider:',error)}
  }
- document.body.classList.toggle('fcm-signed-in',!!currentUser);\n document.querySelectorAll('[data-auth-cta]').forEach(el=>el.hidden=!!currentUser);\n document.querySelectorAll('.member-only').forEach(el=>el.hidden=!currentUser);
+ document.body.classList.toggle('fcm-signed-in',!!currentUser);
+ document.querySelectorAll('[data-auth-cta]').forEach(el=>el.hidden=!!currentUser);
+ document.querySelectorAll('.member-only').forEach(el=>el.hidden=!currentUser);
  document.querySelectorAll('.member-view').forEach(el=>el.hidden=!currentUser);
  document.querySelectorAll('.admin-only').forEach(el=>el.hidden=!isOwnerAdmin);
  const note=document.getElementById('side-note');
