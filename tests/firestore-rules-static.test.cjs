@@ -5,10 +5,11 @@ const path = require("node:path");
 
 const rules = fs.readFileSync(path.join(__dirname, "..", "firestore.rules"), "utf8");
 
-test("Firestore admin access requires the verified owner Google identity", () => {
+test("Firestore admin access requires the verified owner and an unexpired second factor", () => {
   assert.ok(rules.includes('request.auth.token.email == "dangerahmaddon1@gmail.com"'));
   assert.ok(rules.includes("request.auth.token.email_verified == true"));
-  assert.ok(rules.includes('request.auth.token.firebase.sign_in_provider == "google.com"'));
+  assert.ok(rules.includes('request.auth.token.firebase.sign_in_provider == "custom"'));
+  assert.ok(rules.includes("request.auth.token.adminVerifiedUntil > request.time.seconds"));
 });
 
 test("member profile and referral records cannot be deleted or rewritten by members", () => {
