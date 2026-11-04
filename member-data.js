@@ -2,7 +2,7 @@ import { getApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.j
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, runTransaction, collection, query,
-  where, getDocs, serverTimestamp, Timestamp, limit
+  where, getDocs, addDoc, updateDoc, serverTimestamp, Timestamp, limit
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const auth=getAuth(getApp());
@@ -211,6 +211,104 @@ async function resolveMembershipRequest(requestId,data,approve){
     await loadMembershipRequests();
   }catch(error){alert(error.message||"Could not update this request.");console.error(error)}
 }
+
+async function loadWithdrawalRequests(user){
+  const history=$("withdrawal-history");
+  if(history){
+    try{
+      const ownQuery=query(collection(db,"withdrawalRequests"),where("uid","==",user.uid),limit(50));
+      const own=await getDocs(ownQuery);
+      history.replaceChildren();
+      if(own.empty)showMessage(history,"No withdrawal requests yet");
+      else own.forEach(item=>renderWithdrawalRow(history,item.id,item.data(),false));
+    }catch(error){showMessage(history,"Could not load your requests. Check Firestore rules.");console.error(error)}
+  }
+  if(isOwner)await loadAdminWithdrawalRequests();
+}
+function renderWithdrawalRow(container,id,data,adminView){
+  const row=document.createElement("div");row.className="fcm-request-row";
+  const details=document.createElement("div");
+  const heading=document.createElement("strong");
+  heading.textContent=Number(data.amount).toFixed(2)+" USDT · "+(data.network||"Network not specified");
+  const meta=document.createElement("div");meta.className="fcm-request-meta";
+  meta.textContent=(adminView?((data.email||data.uid)+" · "+(data.walletAddress||"No address")+" · "):"")+safeDate(data.createdAt);
+  const status=document.createElement("span");status.className="fcm-request-status";status.textContent=data.status||"pending";
+  details.append(heading,meta,status);row.append(details);
+  if(adminView&&isOwner){
+    const actions=document.createElement("div");actions.className="fcm-request-actions";
+    if(data.status==="pending"){
+      const approve=document.createElement("button");approve.className="btn primary";approve.textContent="Approve";
+      approve.onclick=()=>resolveWithdrawalRequest(id,"approved");
+      const reject=document.createElement("button");reject.className="btn";reject.textContent="Reject";
+      reject.onclick=()=>resolveWithdrawalRequest(id,"rejected");
+      actions.append(approve,reject);
+    }else if(data.status==="approved"){
+      const paid=document.createElement("button");paid.className="btn primary";paid.textContent="Mark paid";
+      paid.onclick=()=>{const reference=prompt("Enter the external transaction reference after you have sent the USDT:");if(reference)resolveWithdrawalRequest(id,"paid",reference.trim())};
+      actions.append(paid);
+    }
+    if(actions.childElementCount)row.append(actions);
+  }
+  container.append(row);
+}
+async function loadAdminWithdrawalRequests(){
+  const container=$("admin-withdrawal-queue");
+  if(!container||!isOwner)return;
+  try{
+    const snapshot=await getDocs(query(collection(db,"withdrawalRequests"),limit(100)));
+    container.replaceChildren();
+    if(snapshot.empty){showMessage(container,"No withdrawal requests");return}
+    snapshot.forEach(item=>renderWithdrawalRow(container,item.id,item.data(),true));
+  }catch(error){showMessage(container,"Could not load requests. Check Firestore rules.");console.error(error)}
+}
+async function resolveWithdrawalRequest(id,nextStatus,paymentReference=""){
+  if(!isOwner||!activeUser)return;
+  if(nextStatus==="paid"&&paymentReference.length<6){alert("Enter a valid transaction reference.");return}
+  const requestRef=doc(db,"withdrawalRequests",id);
+  const auditRef=doc(collection(db,"adminAuditLogs"));
+  try{
+    await runTransaction(db,async transaction=>{
+      const snapshot=await transaction.get(requestRef);
+      if(!snapshot.exists())throw new Error("Request not found.");
+      const previous=snapshot.data().status;
+      const valid=(previous==="pending"&&["approved","rejected"].includes(nextStatus))||(previous==="approved"&&nextStatus==="paid");
+      if(!valid)throw new Error("This request has already been processed or cannot move to that status.");
+      const update={status:nextStatus,reviewedAt:serverTimestamp(),reviewedBy:activeUser.uid};
+      if(nextStatus==="paid"){update.paymentReference=paymentReference;update.paidAt=serverTimestamp()}
+      transaction.update(requestRef,update);
+      transaction.set(auditRef,{actorUid:activeUser.uid,action:"withdrawal_"+nextStatus,targetId:id,targetUid:snapshot.data().uid,createdAt:serverTimestamp()});
+    });
+    await loadWithdrawalRequests(activeUser);
+  }catch(error){alert(error.message||"Could not update withdrawal request.");console.error(error)}
+}
+async function submitWithdrawal(event){
+  event.preventDefault();
+  if(!activeUser){window.dispatchEvent(new CustomEvent("fcm-open-auth",{detail:{mode:"signin"}}));return}
+  const amount=Number($("withdrawal-amount")?.value);
+  const network=$("withdrawal-network")?.value;
+  const walletAddress=$("withdrawal-address")?.value.trim();
+  const message=$("withdrawal-message");
+  const button=$("withdrawal-submit");
+  if(!Number.isFinite(amount)||amount<5||amount>100000||!network||walletAddress.length<12||walletAddress.length>180){
+    if(message)message.textContent="Check the amount, network and wallet address. The minimum request is 5 USDT.";
+    return;
+  }
+  button.disabled=true;
+  if(message)message.textContent="Submitting your request…";
+  try{
+    await addDoc(collection(db,"withdrawalRequests"),{
+      uid:activeUser.uid,email:activeUser.email||"",amount,asset:"USDT",network,walletAddress,
+      status:"pending",createdAt:serverTimestamp()
+    });
+    $("withdrawal-form").reset();
+    if(message)message.textContent="Request submitted for manual review. This is not a payment approval or a promise of payout.";
+    await loadWithdrawalRequests(activeUser);
+  }catch(error){
+    if(message)message.textContent="Could not submit. Confirm Firestore rules are published, then retry.";
+    console.error(error);
+  }finally{button.disabled=false}
+}
+
 async function boot(user){
   activeUser=user;
   isOwner=await verifyOwner(user);
@@ -219,6 +317,7 @@ async function boot(user){
     const profile=await ensureProfile(user);
     await loadReferralData(user,profile);
     await loadMembership(user);
+    await loadWithdrawalRequests(user);
     if(isOwner)await loadMembershipRequests();
   }catch(error){
     console.error("Firestore member data unavailable:",error);
@@ -229,5 +328,7 @@ async function boot(user){
   }
 }
 document.querySelectorAll("[data-membership-request]").forEach(button=>button.addEventListener("click",()=>requestMembership(button.dataset.membershipRequest)));
+const withdrawalForm=$("withdrawal-form");
+if(withdrawalForm)withdrawalForm.addEventListener("submit",submitWithdrawal);
 onAuthStateChanged(auth,user=>{boot(user).catch(error=>console.error(error))});
 
