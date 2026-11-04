@@ -24,7 +24,7 @@ async function applyAccess(user){
  if(user){
   try{
    const token=await user.getIdTokenResult();
-   isOwnerAdmin=String(user.email||'').toLowerCase()===ownerEmail&&token.claims.email_verified===true&&token.claims.firebase?.sign_in_provider==='google.com';
+   isOwnerAdmin=String(user.email||'').toLowerCase()===ownerEmail&&token.claims.email_verified===true&&token.claims.firebase?.sign_in_provider==='custom'&&Number(token.claims.adminVerifiedUntil||0)>Math.floor(Date.now()/1000);
   }catch(error){console.warn('Could not verify owner sign-in provider:',error)}
  }
  document.body.classList.toggle('fcm-signed-in',!!currentUser);
@@ -37,6 +37,7 @@ async function applyAccess(user){
  show(currentUser?'dashboard':'public');
 }
 window.addEventListener('fcm-auth-state',event=>applyAccess(event.detail?.user||null));
+setInterval(async()=>{if(!currentUser)return;try{const token=await currentUser.getIdTokenResult();const allowed=String(currentUser.email||'').toLowerCase()===ownerEmail&&token.claims.email_verified===true&&token.claims.firebase?.sign_in_provider==='custom'&&Number(token.claims.adminVerifiedUntil||0)>Math.floor(Date.now()/1000);if(allowed!==isOwnerAdmin){isOwnerAdmin=allowed;document.querySelectorAll('.admin-only').forEach(el=>el.hidden=!allowed);if(!allowed&&document.getElementById('admin')?.classList.contains('active'))show('dashboard')}}catch(error){console.warn('Could not refresh admin access state:',error)}},15000);
 
 nav.forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go)));

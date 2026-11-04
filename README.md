@@ -10,7 +10,7 @@ The site is a static responsive prototype with a browser-only virtual contract d
 
 Visitors who are signed out can access only the public overview, membership information and help/rules. The dashboard, rewards, mining hub, virtual contract, wallet, activity ledger and account settings require Firebase sign-in. Authentication state is checked through Firebase Auth; the browser UI gate is not a substitute for server-side authorization.
 
-The Admin console is shown only to the verified Google identity `dangerahmaddon1@gmail.com`, with Firestore rules independently enforcing owner access. This is the current first factor, not complete multi-factor protection. A second admin verification step must use Firebase Authentication MFA or a trusted server-side challenge/custom-claim flow; never embed an admin password or secret in client JavaScript. Until that is implemented, treat owner access as needing additional hardening.
+The Admin console is available only to the verified Google identity `dangerahmaddon1@gmail.com` after a separate server-side password check. The backend issues a short-lived custom claim, and Firestore rules enforce its 15-minute expiry on every protected operation. The second-factor password and Firebase service-account key are server-only Vercel environment variables; never embed either secret in client JavaScript or commit them to GitHub. Admin access remains locked until those environment variables are configured.
 
 ## SEO and analytics
 
@@ -76,3 +76,19 @@ Static site entry point: `index.html`. No build command is required. Changes are
 3. Implement contract/session tables and an immutable points ledger.
 4. Add idempotent completion processing, fraud controls and admin audit logs.
 5. Assess approved reward providers and payout infrastructure only after legal review.
+
+
+## Admin second-factor verification
+
+Admin Firestore access now requires all of the following: the verified owner Google identity, a successful server-side second-factor password check, and a short-lived custom claim. The elevated admin session expires after 15 minutes; Firestore rules check the expiry on every protected operation. The password is never shipped to the browser.
+
+Before the admin verification button can work, configure these **Vercel environment variables** for the environments you intend to test:
+
+- `FIREBASE_SERVICE_ACCOUNT_JSON`: the complete Firebase service-account JSON for project `fun-crypto`. Create/download it from Firebase Console → Project settings → Service accounts. Paste the JSON as one environment-variable value. Keep its private key secret; never commit it or send it in chat.
+- `ADMIN_SECOND_FACTOR_PASSWORD`: a unique, randomly generated password of at least 16 characters. Store it only as a Vercel encrypted environment variable. Do not reuse your Google or Firebase account password.
+
+Redeploy the relevant Vercel environment after adding or changing either variable. The verification endpoint rejects non-POST requests, non-owner/non-Google ID tokens, expired or revoked tokens, and missing configuration. It applies a per-owner failed-attempt window and temporary lockout. Failed-attempt state is stored server-side in Firestore and is not client-readable.
+
+After deployment, sign in using the owner Google account, open **Account**, enter the separate admin password and choose **Verify admin access**. The second-factor session lasts 15 minutes. When it expires, sign in with Google again and repeat verification. Do not share the second-factor password with anyone.
+
+**Important:** Firebase Admin SDK service-account credentials grant broad project privileges. Use a dedicated service account with only the permissions needed for Firebase Authentication custom-token creation and Firestore access, restrict who can view Vercel environment variables, and rotate the key if it is exposed. If you do not want to manage service-account credentials, leave the admin console locked until a managed identity/MFA solution is configured.

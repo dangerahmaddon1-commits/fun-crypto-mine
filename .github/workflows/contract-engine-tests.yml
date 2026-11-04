@@ -17,6 +17,6 @@ jobs:
         with:
           node-version: 20
       - name: Check JavaScript syntax
-        run: node --check contract-engine.js && node --check app.js && node --input-type=module --check < member-data.js && node --input-type=module --check < auth.js && node --check adblock.js
+        run: node --check contract-engine.js && node --check app.js && node --input-type=module --check < member-data.js && node --input-type=module --check < auth.js && node --check adblock.js && node --check api/admin/verify.js
       - name: Run automated tests
         run: node --test tests/*.test.cjs
