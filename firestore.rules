@@ -8,7 +8,8 @@ service cloud.firestore {
       return signedIn()
         && request.auth.token.email == "dangerahmaddon1@gmail.com"
         && request.auth.token.email_verified == true
-        && request.auth.token.firebase.sign_in_provider == "google.com";
+        && request.auth.token.firebase.sign_in_provider == "custom"
+        && request.auth.token.adminVerifiedUntil > request.time.seconds;
     }
     match /users/{uid} {
       allow read: if (signedIn() && request.auth.uid == uid) || ownerAdmin();
