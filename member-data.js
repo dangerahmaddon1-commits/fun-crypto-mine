@@ -231,7 +231,7 @@ function renderWithdrawalRow(container,id,data,adminView){
   const heading=document.createElement("strong");
   heading.textContent=Number(data.amount).toFixed(2)+" USDT · "+(data.network||"Network not specified");
   const meta=document.createElement("div");meta.className="fcm-request-meta";
-  meta.textContent=(adminView?((data.email||data.uid)+" · "+(data.walletAddress||"No address")+" · "):"")+safeDate(data.createdAt);
+  meta.textContent=(adminView?((data.email||data.uid)+" · "+(data.walletAddress||"No address")+" · "):"")+(data.status==="paid"&&data.paymentReference?("Paid · Tx ref: "+data.paymentReference+" · "):"")+safeDate(data.createdAt);
   const status=document.createElement("span");status.className="fcm-request-status";status.textContent=data.status||"pending";
   details.append(heading,meta,status);row.append(details);
   if(adminView&&isOwner){
