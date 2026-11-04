@@ -1,5 +1,5 @@
 import { getApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+import { getAuth, onIdTokenChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, runTransaction, collection, query,
   where, getDocs, addDoc, updateDoc, serverTimestamp, Timestamp, limit
@@ -36,7 +36,7 @@ function showMessage(container,message){
 async function verifyOwner(user){
   if(!user||String(user.email||"").toLowerCase()!==OWNER_EMAIL)return false;
   const token=await user.getIdTokenResult();
-  return token.claims.email_verified===true&&token.claims.firebase?.sign_in_provider==="google.com";
+  return token.claims.email_verified===true&&token.claims.firebase?.sign_in_provider==="custom"&&Number(token.claims.adminVerifiedUntil||0)>Math.floor(Date.now()/1000);
 }
 async function ensureProfile(user){
   const userRef=doc(db,"users",user.uid);
@@ -335,5 +335,5 @@ async function boot(user){
 document.querySelectorAll("[data-membership-request]").forEach(button=>button.addEventListener("click",()=>requestMembership(button.dataset.membershipRequest)));
 const withdrawalForm=$("withdrawal-form");
 if(withdrawalForm)withdrawalForm.addEventListener("submit",submitWithdrawal);
-onAuthStateChanged(auth,user=>{boot(user).catch(error=>console.error(error))});
+onIdTokenChanged(auth,user=>{boot(user).catch(error=>console.error(error))});
 
