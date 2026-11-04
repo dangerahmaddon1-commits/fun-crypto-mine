@@ -23,3 +23,12 @@ test("membership entitlement writes are owner-only", () => {
 test("rules do not grant public read or write access", () => {
   assert.doesNotMatch(rules, /allow\s+(?:read|write|read,\s*write)\s*:\s*if\s+true\s*;/);
 });
+
+test("withdrawal requests are private to the member and owner-controlled", () => {
+  assert.match(rules, /match \/withdrawalRequests\/\{requestId\}/);
+  assert.match(rules, /request\.resource\.data\.uid == request\.auth\.uid/);
+  assert.match(rules, /request\.resource\.data\.amount >= 5/);
+  assert.match(rules, /request\.resource\.data\.asset == "USDT"/);
+  assert.match(rules, /resource\.data\.status == "approved"[\s\S]*?request\.resource\.data\.status == "paid"/);
+  assert.match(rules, /allow delete: if false;/);
+});
