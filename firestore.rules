@@ -24,10 +24,9 @@ service cloud.firestore {
         && (request.resource.data.referredBy == null
           || (exists(/databases/$(database)/documents/users/$(request.resource.data.referredBy))
             && request.resource.data.referredBy != uid));
-      allow update: if ownerAdmin()
-        || (signedIn() && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["displayName","updatedAt"])
-          && request.resource.data.updatedAt == request.time);
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["displayName","updatedAt"])
+        && request.resource.data.updatedAt == request.time;
       allow delete: if false;
     }
     match /referralCodes/{code} {
@@ -121,6 +120,10 @@ service cloud.firestore {
           && request.resource.data.reviewedAt == request.time
           && request.resource.data.reviewedBy == request.auth.uid);
       allow delete: if false;
+    }
+    // Admin SDK writes failed-attempt counters; browser clients cannot inspect or alter them.
+    match /adminSecondFactorAttempts/{uid} {
+      allow read, write: if false;
     }
     match /adminAuditLogs/{logId} {
       allow read, create: if ownerAdmin();
