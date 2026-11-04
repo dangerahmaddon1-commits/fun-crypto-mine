@@ -6,6 +6,20 @@ A separate, compliance-first rewards platform prototype.
 
 The site is a static responsive prototype with a browser-only virtual contract demonstration. Firebase Authentication is connected in the preview for email/password and Google sign-in. User profile names are stored in Firebase Auth. Contract progress is still browser-local and is not synced to accounts. It is not connected to advertising providers, offerwalls, mining infrastructure, payment processors or cryptocurrency wallets. Demo points are stored in the visitor's browser, are editable/resettable, have no monetary value and are not withdrawable. No balances, earnings, payouts, mining output or subscription purchases are real.
 
+## Public and member access
+
+Visitors who are signed out can access only the public overview, membership information and help/rules. The dashboard, rewards, mining hub, virtual contract, wallet, activity ledger and account settings require Firebase sign-in. Authentication state is checked through Firebase Auth; the browser UI gate is not a substitute for server-side authorization.
+
+The Admin console is hidden except for the verified Google identity `dangerahmaddon1@gmail.com`. This is a client-side visibility restriction only. There are no privileged backend actions or financial controls in this prototype; any future admin operation must enforce authorization with server-side Firebase custom claims or an equivalent trusted role check.
+
+## SEO and analytics
+
+The public overview includes a canonical URL, descriptive title and metadata, Open Graph/Twitter metadata and WebSite structured data. `robots.txt` and `sitemap.xml` expose the public homepage to crawlers. Vercel Web Analytics' script snippet was already present in `index.html`; it has been retained without adding a duplicate. Analytics data collection still depends on enabling Web Analytics for the project in the Vercel dashboard.
+
+## Ad-blocker access check
+
+A client-side ad-blocker bait check displays a full-screen access notice and retries detection after page load and when the visitor requests another check. This is a best-effort site-access gate, not a security control, and can be affected by aggressive privacy filters. No advertising provider or ad inventory is connected.
+
 ## Virtual free-contract demo
 
 - One session lasts 8 hours.
@@ -33,7 +47,7 @@ Production contract progress must be server-authoritative. Do not trust browser 
 
 ## Deploy
 
-Static site entry point: `index.html`. No build command is required. The current branch is a draft preview and must be reviewed before merging.
+Static site entry point: `index.html`. No build command is required. Changes are developed on a feature branch and must be reviewed before merging.
 
 ## Next milestones
 
