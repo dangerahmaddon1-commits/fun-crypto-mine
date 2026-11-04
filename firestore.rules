@@ -30,7 +30,9 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /referralCodes/{code} {
-      allow read: if signedIn();
+      // Members may resolve a code they were given, but cannot enumerate all users' codes.
+      allow get: if signedIn();
+      allow list: if ownerAdmin();
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(["uid","createdAt"])
         && request.resource.data.uid == request.auth.uid
