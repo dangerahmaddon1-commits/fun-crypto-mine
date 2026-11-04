@@ -10,14 +10,17 @@ test("signed-in users do not see public sign-in calls to action", () => {
   assert.match(app, /querySelectorAll\('\[data-auth-cta\]'\)\.forEach\(el=>el\.hidden=!!currentUser\)/);
 });
 
-test("membership is clearly marked coming soon and has no request controls", () => {
+test("membership stays non-purchasable while signed-in members can request manual review", () => {
   const start = html.indexOf('<section class="view" id="plans">');
   const end = html.indexOf('<section class="view member-view" id="wallet"', start);
   assert.ok(start >= 0 && end > start);
   const membership = html.slice(start, end);
   assert.match(membership, /Membership is coming soon/);
   assert.match(membership, /Coming Soon/);
-  assert.doesNotMatch(membership, /data-membership-request/);
+  assert.match(membership, /membership-request-card member-only/);
+  assert.match(membership, /data-membership-request="starter"/);
+  assert.match(membership, /data-membership-request="pro"/);
+  assert.match(membership, /does not collect payment/);
 });
 
 test("Google branding metadata references the square site logo", () => {

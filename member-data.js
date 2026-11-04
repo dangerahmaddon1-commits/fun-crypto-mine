@@ -2,7 +2,7 @@ import { getApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.j
 import { getAuth, onIdTokenChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, runTransaction, collection, query,
-  where, getDocs, addDoc, updateDoc, serverTimestamp, Timestamp, limit
+  where, getDocs, getCountFromServer, addDoc, updateDoc, serverTimestamp, Timestamp, limit
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const auth=getAuth(getApp());
@@ -129,6 +129,17 @@ async function loadMembership(user){
     box.append(title,detail);
   }catch(error){showMessage(box,"Membership status unavailable");console.error(error)}
 }
+async function loadMembershipRequestStatus(user){
+  const status=$("membership-request-status");
+  if(!status)return;
+  try{
+    const snap=await getDoc(doc(db,"membershipRequests",user.uid));
+    if(!snap.exists()){status.textContent="No membership review request submitted.";return}
+    const data=snap.data();
+    status.textContent="Latest request: "+String(data.planId||"").toUpperCase()+" · "+(data.status||"pending")+".";
+  }catch(error){status.textContent="Membership request status unavailable.";console.error(error)}
+}
+
 async function requestMembership(planId){
   if(!activeUser){window.dispatchEvent(new CustomEvent("fcm-open-auth",{detail:{mode:"signup"}}));return}
   if(!["starter","pro"].includes(planId))return;
@@ -148,6 +159,7 @@ async function requestMembership(planId){
       else transaction.set(requestRef,requestData);
     });
     if(button)button.textContent="Request submitted";
+    await loadMembershipRequestStatus(activeUser);
     await loadMembershipRequests();
   }catch(error){
     if(button){button.disabled=false;button.textContent="Request manual review"}
@@ -173,6 +185,31 @@ function renderRequestRow(container,requestId,data){
   }
   container.append(row);
 }
+async function loadAdminOverview(){
+  if(!isOwner)return;
+  const status=$("admin-stats-status");
+  const button=$("admin-stats-refresh");
+  if(button)button.disabled=true;
+  if(status)status.textContent="Refreshing live Firestore counts…";
+  try{
+    const since=Timestamp.fromDate(new Date(Date.now()-30*24*60*60*1000));
+    const counts=await Promise.all([
+      getCountFromServer(collection(db,"users")),
+      getCountFromServer(query(collection(db,"users"),where("createdAt",">=",since))),
+      getCountFromServer(query(collection(db,"memberships"),where("expiresAt",">",Timestamp.now()))),
+      getCountFromServer(query(collection(db,"membershipRequests"),where("status","==","pending"))),
+      getCountFromServer(query(collection(db,"withdrawalRequests"),where("status","in",["pending","approved"]))),
+      getCountFromServer(collection(db,"referralEvents"))
+    ]);
+    const ids=["admin-stat-users","admin-stat-new-users","admin-stat-memberships","admin-stat-membership-pending","admin-stat-withdrawals","admin-stat-referrals"];
+    counts.forEach((item,index)=>setText(ids[index],item.data().count.toLocaleString()));
+    if(status)status.textContent="Updated "+new Date().toLocaleString()+". Counts reflect Firestore records, not website visits.";
+  }catch(error){
+    if(status)status.textContent="Could not load live counts. Confirm Firestore rules are published and admin access is active.";
+    console.error("Admin overview unavailable:",error);
+  }finally{if(button)button.disabled=false}
+}
+
 async function loadMembershipRequests(){
   const container=$("admin-membership-queue");
   if(!container||!isOwner)return;
@@ -322,8 +359,9 @@ async function boot(user){
     const profile=await ensureProfile(user);
     await loadReferralData(user,profile);
     await loadMembership(user);
+    await loadMembershipRequestStatus(user);
     await loadWithdrawalRequests(user);
-    if(isOwner)await loadMembershipRequests();
+    if(isOwner){await loadMembershipRequests();await loadAdminOverview()}
   }catch(error){
     console.error("Firestore member data unavailable:",error);
     const list=$("referral-list");
@@ -333,6 +371,12 @@ async function boot(user){
   }
 }
 document.querySelectorAll("[data-membership-request]").forEach(button=>button.addEventListener("click",()=>requestMembership(button.dataset.membershipRequest)));
+const adminRefresh=$("admin-stats-refresh");
+if(adminRefresh)adminRefresh.addEventListener("click",async()=>{
+  await loadAdminOverview();
+  await loadMembershipRequests();
+  if(activeUser)await loadWithdrawalRequests(activeUser);
+});
 const withdrawalForm=$("withdrawal-form");
 if(withdrawalForm)withdrawalForm.addEventListener("submit",submitWithdrawal);
 onIdTokenChanged(auth,user=>{boot(user).catch(error=>console.error(error))});

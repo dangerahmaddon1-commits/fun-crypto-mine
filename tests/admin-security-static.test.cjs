@@ -43,3 +43,23 @@ test("client requests admin verification and uses a custom token", () => {
   assert.match(member, /adminVerifiedUntil/);
   assert.match(html, /Admin security is enforced server-side/);
 });
+
+
+test("admin overview uses Firestore aggregate counts for users and operations", () => {
+  assert.match(member, /getCountFromServer/);
+  assert.match(member, /admin-stat-users/);
+  assert.match(member, /admin-stat-new-users/);
+  assert.match(member, /admin-stat-memberships/);
+  assert.match(member, /admin-stat-membership-pending/);
+  assert.match(member, /admin-stat-withdrawals/);
+  assert.match(member, /admin-stat-referrals/);
+  assert.match(member, /expiresAt/);
+});
+
+test("member membership requests are connected to the owner review queue", () => {
+  assert.match(html, /data-membership-request="starter"/);
+  assert.match(html, /data-membership-request="pro"/);
+  assert.match(member, /loadMembershipRequests/);
+  assert.match(member, /loadMembershipRequestStatus/);
+  assert.match(member, /resolveMembershipRequest/);
+});
