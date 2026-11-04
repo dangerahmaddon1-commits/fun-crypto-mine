@@ -287,8 +287,6 @@ async function submitWithdrawal(event){
   const amount=Number($("withdrawal-amount")?.value);
   const network=$("withdrawal-network")?.value;
   const walletAddress=$("withdrawal-address")?.value.trim();
-  const existingRequests=await getDocs(query(collection(db,"withdrawalRequests"),where("uid","==",activeUser.uid),limit(100)));
-  if(existingRequests.docs.some(item=>["pending","approved"].includes(item.data().status))){if($("withdrawal-message"))$("withdrawal-message").textContent="You already have an open withdrawal request. Wait for the owner to review it before submitting another.";return}
   const message=$("withdrawal-message");
   const button=$("withdrawal-submit");
   if(!Number.isFinite(amount)||amount<5||amount>100000||!network||walletAddress.length<12||walletAddress.length>180){
@@ -298,6 +296,11 @@ async function submitWithdrawal(event){
   button.disabled=true;
   if(message)message.textContent="Submitting your request…";
   try{
+    const existingRequests=await getDocs(query(collection(db,"withdrawalRequests"),where("uid","==",activeUser.uid),limit(100)));
+    if(existingRequests.docs.some(item=>["pending","approved"].includes(item.data().status))){
+      if(message)message.textContent="You already have an open withdrawal request. Wait for the owner to review it before submitting another.";
+      return;
+    }
     await addDoc(collection(db,"withdrawalRequests"),{
       uid:activeUser.uid,email:activeUser.email||"",amount,asset:"USDT",network,walletAddress,
       status:"pending",createdAt:serverTimestamp()
