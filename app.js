@@ -18,15 +18,20 @@ function show(id){
  side.classList.remove('open');scrollTo({top:0,behavior:'smooth'});
  if(id==='contract')renderContract()
 }
-function applyAccess(user){
+async function applyAccess(user){
  currentUser=user||null;
- const googleProvider=!!user?.providerData?.some(p=>p.providerId==='google.com');
- isOwnerAdmin=!!user&&String(user.email||'').toLowerCase()===ownerEmail&&user.emailVerified===true&&googleProvider;
+ isOwnerAdmin=false;
+ if(user){
+  try{
+   const token=await user.getIdTokenResult();
+   isOwnerAdmin=String(user.email||'').toLowerCase()===ownerEmail&&token.claims.email_verified===true&&token.claims.firebase?.sign_in_provider==='google.com';
+  }catch(error){console.warn('Could not verify owner sign-in provider:',error)}
+ }
  document.querySelectorAll('.member-only').forEach(el=>el.hidden=!currentUser);
  document.querySelectorAll('.member-view').forEach(el=>el.hidden=!currentUser);
  document.querySelectorAll('.admin-only').forEach(el=>el.hidden=!isOwnerAdmin);
  const note=document.getElementById('side-note');
- if(note)note.innerHTML=currentUser?'<b>● Member preview</b><br>Account access enabled. Mining, rewards, subscriptions and payouts remain disabled.':'<b>● Public preview</b><br>Read the project information and rules. Create an account to enter the member workspace.';
+ if(note)note.innerHTML=currentUser?'<b>● Member preview</b><br>Account access enabled. No real earnings or payouts are enabled.':'<b>● Public preview</b><br>Read the project information and rules. Create an account to enter the member workspace.';
  show(currentUser?'dashboard':'public');
 }
 window.addEventListener('fcm-auth-state',event=>applyAccess(event.detail?.user||null));
@@ -68,8 +73,8 @@ document.getElementById('session-start').addEventListener('click',()=>{const res
 document.getElementById('demo-reset').addEventListener('click',()=>{if(!confirm('Reset all virtual contract demo data stored in this browser?'))return;contract=Engine.freshState();saveContract();renderContract()});
 setInterval(()=>{if(contract.session&&Date.now()>=contract.session.endsAt){const result=Engine.completeDueSession(contract,Date.now());contract=result.state;if(result.completed)saveContract()}if(document.getElementById('contract').classList.contains('active'))renderContract()},1000);
 
-// Load the Firebase account interface independently from the contract demo.
-import('./auth.js').catch((error)=>console.error('Firebase authentication UI failed to load:',error));
+// Firebase authentication and Firestore-backed member features.
+import('./auth.js').then(()=>import('./member-data.js')).catch((error)=>console.error('Firebase modules failed to load:',error));
 
 const authNotice=document.querySelector('.side-note');
 if(authNotice)authNotice.innerHTML='<b>● Prototype mode</b><br>Firebase sign-in is enabled in this preview. Mining, rewards, subscriptions and payouts remain disabled.';
