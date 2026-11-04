@@ -10,7 +10,7 @@ The site is a static responsive prototype with a browser-only virtual contract d
 
 Visitors who are signed out can access only the public overview, membership information and help/rules. The dashboard, rewards, mining hub, virtual contract, wallet, activity ledger and account settings require Firebase sign-in. Authentication state is checked through Firebase Auth; the browser UI gate is not a substitute for server-side authorization.
 
-The Admin console is shown only to the verified Google identity `dangerahmaddon1@gmail.com`, with Firestore rules independently enforcing owner access. This is the current first factor, not complete multi-factor protection. A second admin verification step must use Firebase Authentication MFA or a trusted server-side challenge/custom-claim flow; never embed an admin password or secret in client JavaScript. Until that is implemented, treat owner access as needing additional hardening.
+The Admin console is available only to the verified Google identity `dangerahmaddon1@gmail.com` after a separate server-side password check. The backend issues a short-lived custom claim, and Firestore rules enforce its 15-minute expiry on every protected operation. The second-factor password and Firebase service-account key are server-only Vercel environment variables; never embed either secret in client JavaScript or commit them to GitHub. Admin access remains locked until those environment variables are configured.
 
 ## SEO and analytics
 
