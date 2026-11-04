@@ -1,8 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const path = require("node:path");
 
-const rules = fs.readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
+const rules = fs.readFileSync(path.join(__dirname, "..", "firestore.rules"), "utf8");
 
 test("Firestore admin access requires the verified owner Google identity", () => {
   assert.match(rules, /request\.auth\.token\.email == "dangerahmaddon1@gmail\.com"/);
