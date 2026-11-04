@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://fun-crypto-mine.vercel.app/sitemap.xml

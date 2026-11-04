@@ -34,4 +34,9 @@ $("fcm-signin").addEventListener("click",()=>open("signin"));$("fcm-signup").add
 $("fcm-form").addEventListener("submit",async e=>{e.preventDefault();const button=$("fcm-submit");button.disabled=true;say(mode==="signup"?"Creating account…":"Signing in…",true);try{if(mode==="signup"){const name=$("fcm-name").value.trim();if(name.length<3)throw new Error("Username must contain at least 3 characters.");const cred=await createUserWithEmailAndPassword(auth,$("fcm-email").value.trim(),$("fcm-password").value);await updateProfile(cred.user,{displayName:name});renderUser(auth.currentUser);say("Account created. You are signed in.",true)}else{await signInWithEmailAndPassword(auth,$("fcm-email").value.trim(),$("fcm-password").value);say("Signed in successfully.",true)}window.setTimeout(close,900)}catch(e){say(e.message.startsWith("Username must")?e.message:errorText(e))}finally{button.disabled=false}});
 $("fcm-google").addEventListener("click",async()=>{say("Opening Google sign-in…",true);try{await signInWithPopup(auth,provider);say("Signed in with Google.",true);window.setTimeout(close,900)}catch(e){say(errorText(e))}});
 $("fcm-reset").addEventListener("click",async()=>{const email=$("fcm-email").value.trim();if(!email){say("Enter your email address first.");$("fcm-email").focus();return}try{await sendPasswordResetEmail(auth,email);say("If an account exists for this email, a reset message has been sent.",true)}catch(e){say(errorText(e))}});
-onAuthStateChanged(auth,renderUser);
+document.querySelectorAll('[data-auth-open]').forEach(button=>button.addEventListener('click',()=>open(button.dataset.authOpen||'signup')));
+window.addEventListener('fcm-open-auth',event=>open(event.detail?.mode||'signup'));
+onAuthStateChanged(auth,user=>{
+ renderUser(user);
+ window.dispatchEvent(new CustomEvent('fcm-auth-state',{detail:{user}}));
+});
