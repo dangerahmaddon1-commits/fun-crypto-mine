@@ -1,8 +1,8 @@
 import { getApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 import {
-  getFirestore, doc, getDoc, setDoc, runTransaction, collection, query,
-  where, getDocs, setDoc, runTransaction, serverTimestamp, Timestamp, limit
+  getFirestore, doc, getDoc, runTransaction, collection, query,
+  where, getDocs, serverTimestamp, Timestamp, limit
 } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js";
 
 const auth=getAuth(getApp());
@@ -120,8 +120,9 @@ async function loadMembership(user){
     box.replaceChildren();
     if(!snap.exists()){showMessage(box,"Free membership");return}
     const data=snap.data();
+    const expired=data.expiresAt?.toDate&&data.expiresAt.toDate().getTime()<=Date.now();
     const title=document.createElement("strong");
-    title.textContent=(data.planId||"Member").toUpperCase()+" · "+(data.status||"unknown");
+    title.textContent=(data.planId||"Member").toUpperCase()+" · "+(expired?"expired":(data.status||"unknown"));
     const detail=document.createElement("p");
     detail.className="fcm-request-meta";
     detail.textContent="Valid until "+safeDate(data.expiresAt)+". Membership provides software features only; no earnings or returns are promised.";
