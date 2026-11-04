@@ -1,4 +1,4 @@
-const nav=[...document.querySelectorAll('[data-view]')],views=[...document.querySelectorAll('.view')],side=document.getElementById('side'),title=document.getElementById('title');
+const nav=[...document.querySelectorAll('[data-view]')],views=[...document.querySelectorAll('.view')],side=document.getElementById('side'),title=document.getElementById('title'),eyebrow=document.querySelector('.top .eyebrow');
 let currentUser=null,isOwnerAdmin=false;
 const ownerEmail='dangerahmaddon1@gmail.com';
 const publicViews=new Set(['public','plans','help']);
@@ -13,6 +13,8 @@ function show(id){
  views.forEach(v=>v.classList.toggle('active',v.id===id));
  nav.forEach(b=>b.classList.toggle('active',b.dataset.view===id));
  const b=nav.find(x=>x.dataset.view===id);title.textContent=b?b.textContent.trim():id;
+ if(eyebrow)eyebrow.textContent=currentUser?'Member workspace':'Public information';
+ if(typeof window.va==='function')window.va('pageview',{route:'/'+id,path:'/'+id});
  side.classList.remove('open');scrollTo({top:0,behavior:'smooth'});
  if(id==='contract')renderContract()
 }
