@@ -1,0 +1,24 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+
+const rules = fs.readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
+
+test("Firestore admin access requires the verified owner Google identity", () => {
+  assert.match(rules, /request\.auth\.token\.email == "dangerahmaddon1@gmail\.com"/);
+  assert.match(rules, /request\.auth\.token\.email_verified == true/);
+  assert.match(rules, /request\.auth\.token\.firebase\.sign_in_provider == "google\.com"/);
+});
+
+test("member profile and referral records cannot be deleted or rewritten by members", () => {
+  assert.match(rules, /match \/users\/\{uid\}[\s\S]*?allow delete: if false;/);
+  assert.match(rules, /match \/referralEvents\/\{referredUid\}[\s\S]*?allow update, delete: if false;/);
+});
+
+test("membership entitlement writes are owner-only", () => {
+  assert.match(rules, /match \/memberships\/\{uid\}[\s\S]*?allow create, update: if ownerAdmin\(\)/);
+});
+
+test("rules do not grant public read or write access", () => {
+  assert.doesNotMatch(rules, /allow\s+(?:read|write|read,\s*write)\s*:\s*if\s+true\s*;/);
+});
