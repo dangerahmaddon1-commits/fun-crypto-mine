@@ -10,9 +10,9 @@ The site is a static responsive prototype with a browser-only virtual contract d
 
 Visitors who are signed out can access only the public overview, membership information and help/rules. The dashboard, rewards, mining hub, virtual contract, wallet, activity ledger and account settings require Firebase sign-in. Authentication state is checked through Firebase Auth; the browser UI gate is not a substitute for server-side authorization.
 
-The Admin console is hidden except for the verified Google identity `dangerahmaddon1@gmail.com`. This is a client-side visibility restriction only. There are no privileged backend actions or financial controls in this prototype; any future admin operation must enforce authorization with server-side Firebase custom claims or an equivalent trusted role check.
+The Admin console is shown only to the verified Google identity `dangerahmaddon1@gmail.com`, with Firestore rules independently enforcing owner access. This is the current first factor, not complete multi-factor protection. A second admin verification step must use Firebase Authentication MFA or a trusted server-side challenge/custom-claim flow; never embed an admin password or secret in client JavaScript. Until that is implemented, treat owner access as needing additional hardening.
 
-## SEO and analytics
+## SEO and analytics\n\nThe public page now references the square `logo.svg` brand asset as its favicon, social preview image and Organization structured-data logo. Google may choose whether to display it and can take time to recrawl the site; this markup does not guarantee a branded search result.
 
 The public overview includes a canonical URL, descriptive title and metadata, Open Graph/Twitter metadata and WebSite structured data. `robots.txt` and `sitemap.xml` expose the public homepage to crawlers. Vercel Web Analytics' script snippet was already present in `index.html`; it has been retained without adding a duplicate. Analytics data collection still depends on enabling Web Analytics for the project in the Vercel dashboard.
 
