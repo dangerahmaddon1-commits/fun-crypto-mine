@@ -8,6 +8,7 @@ const rules = fs.readFileSync(path.join(__dirname, "..", "firestore.rules"), "ut
 const auth = fs.readFileSync(path.join(__dirname, "..", "auth.js"), "utf8");
 const app = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const member = fs.readFileSync(path.join(__dirname, "..", "member-data.js"), "utf8");
+const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("admin password is checked only in a serverless endpoint", () => {
   assert.match(endpoint, /process\.env\.ADMIN_SECOND_FACTOR_PASSWORD/);
@@ -40,4 +41,5 @@ test("client requests admin verification and uses a custom token", () => {
   assert.match(auth, /signInWithCustomToken/);
   assert.match(app, /adminVerifiedUntil/);
   assert.match(member, /adminVerifiedUntil/);
+  assert.match(html, /Admin security is enforced server-side/);
 });
