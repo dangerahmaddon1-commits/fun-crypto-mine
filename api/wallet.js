@@ -1,8 +1,4 @@
 const crypto = require("node:crypto");
-const { initializeApp, cert, getApps } = require("firebase-admin/app");
-const { getAuth } = require("firebase-admin/auth");
-const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-
 const OWNER_EMAIL = "dangerahmaddon1@gmail.com";
 const POINTS_PER_USDT = 1000;
 const MIN_WITHDRAWAL_USDT = 5;
@@ -15,6 +11,9 @@ function reply(res, status, payload) {
 }
 
 function services() {
+  const { initializeApp, cert, getApps } = require("firebase-admin/app");
+  const { getAuth } = require("firebase-admin/auth");
+  const { getFirestore, FieldValue } = require("firebase-admin/firestore");
   if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) throw new Error("Missing Firebase service-account configuration.");
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
   const app = getApps().length ? getApps()[0] : initializeApp({
