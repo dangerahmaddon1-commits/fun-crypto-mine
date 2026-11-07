@@ -84,7 +84,7 @@ module.exports = async function handler(req, res) {
       const network = String(body.network || "");
       const walletAddress = String(body.walletAddress || "").trim();
       if (!Number.isFinite(amount) || amount < MIN_WITHDRAWAL_USDT || amount > 100000
-        || Math.round(amount * 100) !== amount * 100 || !NETWORKS.has(network)
+        || Math.abs(amount * 100 - Math.round(amount * 100)) > 1e-8 || !NETWORKS.has(network)
         || walletAddress.length < 12 || walletAddress.length > 180) {
         return reply(res, 400, { error: "Check the withdrawal amount, network and receiving address. Minimum withdrawal is 5 USDT." });
       }
