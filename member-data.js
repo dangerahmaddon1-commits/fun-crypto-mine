@@ -160,7 +160,7 @@ async function loadReferralData(user,profile){
     heading.textContent="New referred account";
     const meta=document.createElement("div");
     meta.className="fcm-request-meta";
-    meta.textContent="Joined "+safeDate(data.createdAt);
+    meta.textContent="Joined "+safeDate(data.createdAt)+" · "+(data.rewardStatus==="credited"?"20-point reward credited":"Reward review pending");
     details.append(heading,meta);row.append(details);list.append(row);
   });
 }
@@ -442,6 +442,11 @@ async function boot(user){
   if(!user)return;
   try{
     const profile=await ensureProfile(user);
+    try{
+      await walletApi(user,{action:"claimReferral"});
+    }catch(referralError){
+      console.warn("Referral reward check is temporarily unavailable:",referralError);
+    }
     await loadAccountSettings(user);
     await loadReferralData(user,profile);
     await loadMembership(user);
