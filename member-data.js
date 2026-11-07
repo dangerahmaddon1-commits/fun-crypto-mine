@@ -200,7 +200,7 @@ async function loadAccountSettings(user){
   const resetButton=$("profile-password-reset"),note=$("profile-password-note");
   if(resetButton)resetButton.hidden=!hasPasswordProvider;
   if(note)note.textContent=hasPasswordProvider
-    ?"Send a password-reset link to your sign-in email. The link will be sent by Firebase Authentication."
+    ?"Send a password-reset link to your sign-in email."
     :"This account uses Google sign-in. Manage its password through your Google account.";
 }
 async function saveAccountProfile(event){
