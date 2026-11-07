@@ -469,6 +469,7 @@ if(adminRefresh)adminRefresh.addEventListener("click",async()=>{
   await loadMembershipRequests();
   if(activeUser)await loadWithdrawalRequests(activeUser);
 });
+document.querySelectorAll('[data-view="wallet"]').forEach(button=>button.addEventListener("click",()=>{if(activeUser)loadWalletBalance(activeUser)}));
 const withdrawalForm=$("withdrawal-form");
 if(withdrawalForm)withdrawalForm.addEventListener("submit",submitWithdrawal);
 onIdTokenChanged(auth,user=>{boot(user).catch(error=>console.error(error))});
