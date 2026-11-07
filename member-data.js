@@ -1,5 +1,5 @@
 import { getApp } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js";
-import { getAuth, onIdTokenChanged } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
+import { getAuth, onIdTokenChanged, updateProfile, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, runTransaction, collection, query,
   where, getDocs, getCountFromServer, addDoc, updateDoc, serverTimestamp, Timestamp, limit
@@ -138,6 +138,54 @@ async function loadMembershipRequestStatus(user){
     const data=snap.data();
     status.textContent="Latest request: "+String(data.planId||"").toUpperCase()+" · "+(data.status||"pending")+".";
   }catch(error){status.textContent="Membership request status unavailable.";console.error(error)}
+}
+
+async function loadAccountSettings(user){
+  const nameField=$("profile-display-name"),emailField=$("profile-email");
+  if(nameField)nameField.value=user.displayName||"";
+  if(emailField)emailField.value=user.email||"";
+  const hasPasswordProvider=(user.providerData||[]).some(item=>item.providerId==="password");
+  const resetButton=$("profile-password-reset"),note=$("profile-password-note");
+  if(resetButton)resetButton.hidden=!hasPasswordProvider;
+  if(note)note.textContent=hasPasswordProvider
+    ?"Send a password-reset link to your sign-in email. The link will be sent by Firebase Authentication."
+    :"This account uses Google sign-in. Manage its password through your Google account.";
+}
+async function saveAccountProfile(event){
+  event.preventDefault();
+  if(!activeUser)return;
+  const field=$("profile-display-name"),button=$("profile-save"),message=$("profile-message");
+  const displayName=(field?.value||"").trim();
+  if(displayName.length<3||displayName.length>30){
+    if(message)message.textContent="Display name must be between 3 and 30 characters.";
+    return;
+  }
+  if(button)button.disabled=true;
+  if(message)message.textContent="Saving profile…";
+  try{
+    await updateProfile(activeUser,{displayName});
+    await updateDoc(doc(db,"users",activeUser.uid),{displayName,updatedAt:serverTimestamp()});
+    if(message)message.textContent="Profile updated successfully.";
+    await loadAccountSettings(activeUser);
+  }catch(error){
+    if(message)message.textContent=error.code==="auth/requires-recent-login"
+      ?"For security, sign out and sign in again before changing your profile."
+      :"Could not save your profile. Please retry.";
+    console.error("Profile update failed:",error);
+  }finally{if(button)button.disabled=false}
+}
+async function sendAccountPasswordReset(){
+  if(!activeUser?.email)return;
+  const button=$("profile-password-reset"),message=$("profile-password-message");
+  if(button)button.disabled=true;
+  if(message)message.textContent="Sending password-reset email…";
+  try{
+    await sendPasswordResetEmail(auth,activeUser.email);
+    if(message)message.textContent="If the account supports email/password sign-in, a reset link has been sent.";
+  }catch(error){
+    if(message)message.textContent="Could not send the reset email. Please try again later.";
+    console.error("Password reset request failed:",error);
+  }finally{if(button)button.disabled=false}
 }
 
 async function requestMembership(planId){
@@ -357,6 +405,7 @@ async function boot(user){
   if(!user)return;
   try{
     const profile=await ensureProfile(user);
+    await loadAccountSettings(user);
     await loadReferralData(user,profile);
     await loadMembership(user);
     await loadMembershipRequestStatus(user);
@@ -371,6 +420,10 @@ async function boot(user){
   }
 }
 document.querySelectorAll("[data-membership-request]").forEach(button=>button.addEventListener("click",()=>requestMembership(button.dataset.membershipRequest)));
+const profileForm=$("profile-form");
+if(profileForm)profileForm.addEventListener("submit",saveAccountProfile);
+const passwordReset=$("profile-password-reset");
+if(passwordReset)passwordReset.addEventListener("click",sendAccountPasswordReset);
 const adminRefresh=$("admin-stats-refresh");
 if(adminRefresh)adminRefresh.addEventListener("click",async()=>{
   await loadAdminOverview();
