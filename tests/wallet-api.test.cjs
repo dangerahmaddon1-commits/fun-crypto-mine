@@ -8,6 +8,11 @@ test("USDT redemption uses 1,000 points per USDT and a five-USDT minimum", () =>
   assert.equal(5000 / Wallet.POINTS_PER_USDT, 5);
 });
 
+test("one-time referral rewards use 20 points for the inviter and 10 for the new member", () => {
+  assert.equal(Wallet.REFERRER_REWARD_POINTS, 20);
+  assert.equal(Wallet.INVITEE_REWARD_POINTS, 10);
+});
+
 test("wallet point sanitization accepts only non-negative safe integers", () => {
   assert.equal(Wallet.safePoints(5000), 5000);
   assert.equal(Wallet.safePoints(-1), 0);
