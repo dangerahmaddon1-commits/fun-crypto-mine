@@ -44,11 +44,8 @@ test("rules do not grant public read or write access", () => {
   assert.equal(/allow\s+(?:read|write|read,\s*write)\s*:\s*if\s+true\s*;/.test(rules), false);
 });
 
-test("withdrawal requests are private to the member and owner-controlled", () => {
+test("withdrawal requests are private and all writes are restricted to the trusted wallet API", () => {
   assert.ok(rules.includes("match /withdrawalRequests/{requestId}"));
-  assert.ok(rules.includes("request.resource.data.uid == request.auth.uid"));
-  assert.ok(rules.includes("request.resource.data.amount >= 5"));
-  assert.ok(rules.includes('request.resource.data.asset == "USDT"'));
-  assert.ok(rules.includes('resource.data.status == "approved"'));
-  assert.ok(rules.includes('request.resource.data.status == "paid"'));
+  assert.match(rules, /allow read: if ownerAdmin\(\) \|\| \(signedIn\(\) && resource\.data\.uid == request\.auth\.uid\);/);
+  assert.match(rules, /allow create, update, delete: if false;/);
 });
