@@ -16,7 +16,7 @@ function show(id){
  if(eyebrow)eyebrow.textContent=currentUser?'Member workspace':'Public information';
  if(typeof window.va==='function')window.va('pageview',{route:'/'+id,path:'/'+id});
  side.classList.remove('open');scrollTo({top:0,behavior:'smooth'});
- if(id==='contract')renderContract()
+ if(id==='mining')renderContract()
 }
 async function applyAccess(user){
  currentUser=user||null;
@@ -70,8 +70,6 @@ async function syncContract(action='snapshot'){
   if(message){
    if(action==='start'&&payload.started)message.textContent='Your one-hour server-timed session is active.';
    else if(action==='start'&&payload.reason==='session_active')message.textContent='A session is already running.';
-   else if(action==='start'&&payload.reason==='daily_limit')message.textContent='You have used all three sessions for today.';
-   else if(action==='start'&&payload.reason==='cycle_complete')message.textContent='This 30-active-day cycle is complete.';
    else if(payload.completed)message.textContent='Session completed. 10 simulated points were added to your account.';
    else message.textContent=contractState.session?'Your session is active. The server checks its completion time.':'No active session.';
   }
@@ -89,30 +87,18 @@ async function syncContract(action='snapshot'){
 function renderContract(){
  const state=contractState;
  const empty=!state;
- const active=!!state?.session,done=!!state?.cycleCompleted;
+ const active=!!state?.session;
  document.getElementById('contract-points').textContent=empty?'—':Number(state.points||0).toLocaleString();
- document.getElementById('contract-days').textContent=empty?'—':String(state.activeDays||0);
- document.getElementById('contract-today').textContent=empty?'—':String(state.sessionsStartedToday||0);
- document.getElementById('contract-status').textContent=empty?'Connecting…':done?'Cycle complete':active?'Session running':(state?.activeDays?'Paused / ready':'Not started');
- document.getElementById('contract-status-note').textContent=empty?'Loading account-backed progress':done?'Demo cycle completed':active?'Server-timed session is in progress':'Missed days preserve progress';
- const progress=empty?0:Number(state.progressPercent||0);
- document.getElementById('contract-progress-label').textContent=progress+'% complete';
- document.getElementById('contract-progress-bar').style.width=progress+'%';
+ document.getElementById('contract-status').textContent=empty?'Connecting…':active?'Session running':(state?.points?'Ready for next session':'Not started');
+ document.getElementById('contract-status-note').textContent=empty?'Loading account-backed progress':active?'Server-timed session is in progress':'Activate another session whenever the previous one completes';
  document.getElementById('session-state').textContent=active?'SESSION ACTIVE':'READY TO START';
  const remaining=active?Math.max(0,Number(state.session.endsAt)-Date.now()):3600000;
  document.getElementById('session-timer').textContent=Engine.formatRemaining(remaining);
  document.getElementById('session-description').textContent=active?'Your session is stored on the server and completes after one hour.':'Start a server-timed virtual session. Completion awards 10 simulated points.';
  const startButton=document.getElementById('session-start');
- startButton.disabled=empty||contractBusy||active||Number(state?.sessionsStartedToday||0)>=3||done;
- startButton.textContent=active?'Session running':done?'Cycle completed':Number(state?.sessionsStartedToday||0)>=3?'Daily session limit reached':'Activate 1-hour session';
+ startButton.disabled=empty||contractBusy||active;
+ startButton.textContent=active?'Session running':'Activate 1-hour session';
  if(empty&&!lastSyncError)document.getElementById('session-message').textContent='Connecting to your secure contract account…';
- const complete=document.getElementById('contract-complete');
- complete.classList.toggle('contract-complete',done);
- complete.replaceChildren();
- const completeTitle=document.createElement('b');
- completeTitle.textContent=done?'Demo cycle completed':'Cycle not yet complete';
- const completeText=document.createTextNode(done?'You completed 30 active days and earned '+state.points+' simulated points. These points are not money and cannot be withdrawn.':'Complete sessions across 30 active days to finish this demo cycle. Missing a day pauses progress; it does not reset it.');
- complete.append(completeTitle,completeText);
  const history=document.getElementById('contract-history');history.replaceChildren();
  if(state?.history?.length){
   state.history.forEach(entry=>{
@@ -141,13 +127,13 @@ applyAccess(null);
 import('./auth.js').then(()=>import('./member-data.js')).catch((error)=>console.error('Firebase modules failed to load:',error));
 
 const authNotice=document.querySelector('.side-note');
-if(authNotice)authNotice.innerHTML='<b>● Prototype mode</b><br>Firebase sign-in is enabled in this preview. Mining, rewards, subscriptions and payouts remain disabled.';
+if(authNotice)authNotice.innerHTML='<b>● Account secured</b><br>Firebase sign-in is enabled. Reward and payout integrations remain under development.';
 const systemStatus=document.querySelector('.top-right .status');
-if(systemStatus)systemStatus.textContent='● Firebase auth · Demo mode';
+if(systemStatus)systemStatus.textContent='● Firebase account access';
 const dashboardNotice=document.querySelector('#dashboard .notice div');
 if(dashboardNotice)dashboardNotice.innerHTML='<strong>Preview only — no real earnings yet.</strong> Firebase sign-in is available. Balances, subscriptions, mining and crypto payouts are not active. No income is promised.';
 const settingsIntro=document.querySelector('#settings .intro');
-if(settingsIntro)settingsIntro.textContent='Update your display name below. Your sign-in email and password recovery are handled by Firebase Authentication. Contract progress remains device-local and is not synced to your account.';
+if(settingsIntro)settingsIntro.textContent='Update your display name below. Your sign-in email and password recovery are handled by Firebase Authentication. Contract sessions and simulated points are synced securely to your Firebase account.';
 const settingsEmail=document.querySelector('#settings input[disabled]');
 if(settingsEmail){settingsEmail.placeholder='Use the Account control above';settingsEmail.disabled=true}
 const settingsTag=document.querySelector('#settings .tag');

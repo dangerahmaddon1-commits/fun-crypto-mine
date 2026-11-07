@@ -5,8 +5,8 @@ const Contract = require("../api/contracts/session.js")._test;
 test("server contract uses a one-hour session and ten simulated points", () => {
   assert.equal(Contract.SESSION_MS, 60 * 60 * 1000);
   assert.equal(Contract.POINTS_PER_SESSION, 10);
-  assert.equal(Contract.MAX_SESSIONS_PER_DAY, 3);
-  assert.equal(Contract.REQUIRED_ACTIVE_DAYS, 30);
+  assert.equal(Contract.MAX_SESSIONS_PER_DAY, undefined);
+  assert.equal(Contract.REQUIRED_ACTIVE_DAYS, undefined);
 });
 
 test("contract day boundaries are calculated in UTC", () => {
@@ -34,15 +34,13 @@ test("server sanitization rejects negative balances, invalid dates and malformed
   assert.equal(account.session, null);
 });
 
-test("snapshot calculates cycle progress and daily session count", () => {
+test("snapshot exposes points and one-hour session state without daily or cycle caps", () => {
   const account = Contract.freshAccount();
   account.points = 120;
-  account.activeDays = Array.from({ length: 12 }, (_, index) => "2026-10-" + String(index + 1).padStart(2, "0"));
-  account.sessionsByDay["2026-11-07"] = 2;
   const state = Contract.snapshot(account, Date.UTC(2026, 10, 7, 12));
   assert.equal(state.points, 120);
-  assert.equal(state.activeDays, 12);
-  assert.equal(state.progressPercent, 40);
-  assert.equal(state.sessionsStartedToday, 2);
-  assert.equal(state.cycleCompleted, false);
+  assert.equal(state.sessionDurationMs, 60 * 60 * 1000);
+  assert.equal(state.pointsPerSession, 10);
+  assert.equal("maxSessionsPerDay" in state, false);
+  assert.equal("cycleCompleted" in state, false);
 });

@@ -2,8 +2,6 @@ const crypto = require("node:crypto");
 
 const SESSION_MS = 60 * 60 * 1000;
 const POINTS_PER_SESSION = 10;
-const MAX_SESSIONS_PER_DAY = 3;
-const REQUIRED_ACTIVE_DAYS = 30;
 const HISTORY_LIMIT = 50;
 
 function reply(res, status, payload) {
@@ -39,12 +37,12 @@ function safeAccount(data) {
   if (!data || typeof data !== "object") return freshAccount();
   const points = Number.isSafeInteger(data.points) && data.points >= 0 ? data.points : 0;
   const activeDays = Array.isArray(data.activeDays)
-    ? [...new Set(data.activeDays.filter(day => typeof day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(day)))].slice(0, REQUIRED_ACTIVE_DAYS)
+    ? [...new Set(data.activeDays.filter(day => typeof day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(day)))]
     : [];
   const sessionsByDay = {};
   if (data.sessionsByDay && typeof data.sessionsByDay === "object") {
     for (const [day, count] of Object.entries(data.sessionsByDay)) {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(day) && Number.isInteger(count) && count >= 0 && count <= MAX_SESSIONS_PER_DAY) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(day) && Number.isInteger(count) && count >= 0) {
         sessionsByDay[day] = count;
       }
     }
@@ -58,20 +56,12 @@ function safeAccount(data) {
   return { points, activeDays, sessionsByDay, session, history };
 }
 
-function snapshot(account, now) {
-  const day = utcDay(now);
-  const activeDays = Math.min(REQUIRED_ACTIVE_DAYS, account.activeDays.length);
+function snapshot(account) {
   return {
     points: account.points,
-    activeDays,
-    requiredActiveDays: REQUIRED_ACTIVE_DAYS,
-    progressPercent: Math.round(activeDays / REQUIRED_ACTIVE_DAYS * 100),
-    sessionsStartedToday: account.sessionsByDay[day] || 0,
-    maxSessionsPerDay: MAX_SESSIONS_PER_DAY,
     pointsPerSession: POINTS_PER_SESSION,
     sessionDurationMs: SESSION_MS,
     session: account.session,
-    cycleCompleted: activeDays >= REQUIRED_ACTIVE_DAYS,
     history: account.history
   };
 }
@@ -108,7 +98,6 @@ module.exports = async function handler(req, res) {
         if (!ledgerSnap.exists) {
           account.points += POINTS_PER_SESSION;
           if (!account.activeDays.includes(finished.day)) account.activeDays.push(finished.day);
-          account.activeDays = account.activeDays.slice(0, REQUIRED_ACTIVE_DAYS);
           account.history.unshift({
             type: "Session completed",
             day: finished.day,
@@ -130,11 +119,8 @@ module.exports = async function handler(req, res) {
       if (action === "start") {
         const day = utcDay(now);
         if (account.session) reason = "session_active";
-        else if (account.activeDays.length >= REQUIRED_ACTIVE_DAYS) reason = "cycle_complete";
-        else if ((account.sessionsByDay[day] || 0) >= MAX_SESSIONS_PER_DAY) reason = "daily_limit";
         else {
           const id = crypto.randomUUID();
-          account.sessionsByDay[day] = (account.sessionsByDay[day] || 0) + 1;
           account.session = { id, day, startedAt: now, endsAt: now + SESSION_MS };
           account.history.unshift({ type: "Session activated", day, at: now, points: 0 });
           started = true;
@@ -143,7 +129,7 @@ module.exports = async function handler(req, res) {
 
       account.history = account.history.slice(0, HISTORY_LIMIT);
       transaction.set(accountRef, { ...account, uid, updatedAt: FieldValue.serverTimestamp() });
-      return { state: snapshot(account, now), completed, completedSessionId, started, reason };
+      return { state: snapshot(account), completed, completedSessionId, started, reason };
     });
 
     return reply(res, 200, result);
@@ -156,4 +142,4 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports._test = { utcDay, freshAccount, safeAccount, snapshot, SESSION_MS, POINTS_PER_SESSION, MAX_SESSIONS_PER_DAY, REQUIRED_ACTIVE_DAYS };
+module.exports._test = { utcDay, freshAccount, safeAccount, snapshot, SESSION_MS, POINTS_PER_SESSION };

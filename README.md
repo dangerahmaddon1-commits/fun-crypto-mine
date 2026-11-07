@@ -22,15 +22,13 @@ The public overview includes a canonical URL, descriptive title and metadata, Op
 
 A client-side ad-blocker bait check displays a full-screen access notice and retries detection after page load and when the visitor requests another check. This is a best-effort site-access gate, not a security control, and can be affected by aggressive privacy filters. No advertising provider or ad inventory is connected.
 
-## Virtual free-contract demo
+## Virtual Mining Hub
 
 - One new session lasts 1 hour. Existing browser-local 8-hour demo sessions are allowed to finish after the duration change; new sessions use the 1-hour duration.
 - Each completed session awards 10 simulated points.
-- Up to three sessions may be started per local calendar date.
-- A local date counts as one active day after at least one session started on that date completes.
-- The cycle completes after 30 distinct active days.
-- Missing a day pauses progress; it does not erase completed active days or points.
-- Up to 30 simulated points can be earned per active date. A full 30-day cycle can therefore produce up to 900 demo points if all three sessions are completed on every active date.
+- There is no daily session cap or 30-day cycle.
+- A member may start another session as soon as the previous one completes.
+- Only one active session is allowed per account at a time.
 - This is a UI demonstration only. Browser storage is not authoritative and must never be used for real balances or payouts.
 
 ## Product model
@@ -45,7 +43,7 @@ A client-side ad-blocker bait check displays a full-screen access notice and ret
 
 Do not accept deposits, sell mining contracts, issue tokens, activate paid subscriptions or process withdrawals until legal, licensing, tax, privacy, security, provider and operational requirements have been reviewed and approved. Never present virtual mining visuals as actual mining or promise fixed returns.
 
-Contract session progress is server-authoritative in the current implementation. The endpoint verifies Firebase ID tokens, uses server time, enforces one active session and daily/cycle limits, and writes a unique completion event with the account update in one transaction. Keep non-cash demo points separate from any future financial ledger. This implementation does not make simulated points redeemable or provide proof of mining proceeds.
+Contract session progress is server-authoritative in the current implementation. The endpoint verifies Firebase ID tokens, uses server time, enforces one active session at a time without daily or cycle caps, and writes a unique completion event with the account update in one transaction. Keep non-cash demo points separate from any future financial ledger. This implementation does not make simulated points redeemable or provide proof of mining proceeds.
 
 
 ## Firestore member data foundation
