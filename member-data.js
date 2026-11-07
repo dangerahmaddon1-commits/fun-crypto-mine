@@ -18,6 +18,31 @@ function safeDate(value){
   const date=value.toDate?value.toDate():new Date(value);
   return Number.isNaN(date.getTime())?"Date pending":date.toLocaleDateString();
 }
+async function walletApi(user,payload){
+  const token=await user.getIdToken();
+  const response=await fetch("/api/wallet",{
+    method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+    body:JSON.stringify(payload)
+  });
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(result.error||"Wallet request failed.");
+  return result;
+}
+async function loadWalletBalance(user){
+  try{
+    const result=await walletApi(user,{action:"balance"});
+    const balance=result.balance||{};
+    setText("wallet-balance-points",Number(balance.availablePoints||0).toLocaleString()+" pts");
+    setText("wallet-balance-usdt",Number(balance.availableUsdt||0).toFixed(2)+" USDT");
+    setText("wallet-reserved-points",Number(balance.reservedPoints||0).toLocaleString()+" pts reserved");
+    const amount=$("withdrawal-amount");
+    if(amount)amount.max=String(Math.min(100000,Number(balance.availableUsdt||0)));
+  }catch(error){
+    setText("wallet-balance-points","Unavailable");
+    setText("wallet-balance-usdt","Unavailable");
+    console.error("Wallet balance unavailable:",error);
+  }
+}
 function makeCode(){
   const bytes=new Uint8Array(6);
   crypto.getRandomValues(bytes);
@@ -349,21 +374,10 @@ async function loadAdminWithdrawalRequests(){
 async function resolveWithdrawalRequest(id,nextStatus,paymentReference=""){
   if(!isOwner||!activeUser)return;
   if(nextStatus==="paid"&&paymentReference.length<6){alert("Enter a valid transaction reference.");return}
-  const requestRef=doc(db,"withdrawalRequests",id);
-  const auditRef=doc(collection(db,"adminAuditLogs"));
   try{
-    await runTransaction(db,async transaction=>{
-      const snapshot=await transaction.get(requestRef);
-      if(!snapshot.exists())throw new Error("Request not found.");
-      const previous=snapshot.data().status;
-      const valid=(previous==="pending"&&["approved","rejected"].includes(nextStatus))||(previous==="approved"&&nextStatus==="paid");
-      if(!valid)throw new Error("This request has already been processed or cannot move to that status.");
-      const update={status:nextStatus,reviewedAt:serverTimestamp(),reviewedBy:activeUser.uid};
-      if(nextStatus==="paid"){update.paymentReference=paymentReference;update.paidAt=serverTimestamp()}
-      transaction.update(requestRef,update);
-      transaction.set(auditRef,{actorUid:activeUser.uid,action:"withdrawal_"+nextStatus,targetId:id,targetUid:snapshot.data().uid,createdAt:serverTimestamp()});
-    });
+    await walletApi(activeUser,{action:"resolve",requestId:id,status:nextStatus,paymentReference});
     await loadWithdrawalRequests(activeUser);
+    await loadWalletBalance(activeUser);
   }catch(error){alert(error.message||"Could not update withdrawal request.");console.error(error)}
 }
 async function submitWithdrawal(event){
@@ -375,26 +389,19 @@ async function submitWithdrawal(event){
   const message=$("withdrawal-message");
   const button=$("withdrawal-submit");
   if(!Number.isFinite(amount)||amount<5||amount>100000||!network||walletAddress.length<12||walletAddress.length>180){
-    if(message)message.textContent="Check the amount, network and wallet address. The minimum request is 5 USDT.";
+    if(message)message.textContent="Check the amount, network and receiving address. Minimum withdrawal is 5 USDT.";
     return;
   }
   button.disabled=true;
   if(message)message.textContent="Submitting your request…";
   try{
-    const existingRequests=await getDocs(query(collection(db,"withdrawalRequests"),where("uid","==",activeUser.uid),limit(100)));
-    if(existingRequests.docs.some(item=>["pending","approved"].includes(item.data().status))){
-      if(message)message.textContent="You already have an open withdrawal request. Wait for the owner to review it before submitting another.";
-      return;
-    }
-    await addDoc(collection(db,"withdrawalRequests"),{
-      uid:activeUser.uid,email:activeUser.email||"",amount,asset:"USDT",network,walletAddress,
-      status:"pending",createdAt:serverTimestamp()
-    });
+    await walletApi(activeUser,{action:"request",amount,network,walletAddress});
     $("withdrawal-form").reset();
-    if(message)message.textContent="Request submitted for manual review. This is not a payment approval or a promise of payout.";
+    if(message)message.textContent="Your request has been added to the owner review queue.";
     await loadWithdrawalRequests(activeUser);
+    await loadWalletBalance(activeUser);
   }catch(error){
-    if(message)message.textContent="Could not submit. Confirm Firestore rules are published, then retry.";
+    if(message)message.textContent=error.message||"Could not submit your withdrawal request.";
     console.error(error);
   }finally{button.disabled=false}
 }
@@ -409,7 +416,7 @@ async function boot(user){
     await loadReferralData(user,profile);
     await loadMembership(user);
     await loadMembershipRequestStatus(user);
-    await loadWithdrawalRequests(user);
+    await loadWithdrawalRequests(user);\n    await loadWalletBalance(user);
     if(isOwner){await loadMembershipRequests();await loadAdminOverview()}
   }catch(error){
     console.error("Firestore member data unavailable:",error);
