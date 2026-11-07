@@ -86,7 +86,8 @@ module.exports = async function handler(req, res) {
     const { auth, db, FieldValue } = services();
     const decoded = await auth.verifyIdToken(match[1], true);
     const uid = decoded.uid;
-    const action = req.body && req.body.action;
+    const body = typeof req.body === "string" ? (() => { try { return JSON.parse(req.body); } catch { return {}; } })() : (req.body || {});
+    const action = body.action;
     if (!["snapshot", "start"].includes(action)) {
       return reply(res, 400, { error: "Unsupported contract action." });
     }
@@ -148,7 +149,7 @@ module.exports = async function handler(req, res) {
     return reply(res, 200, result);
   } catch (error) {
     console.error("Contract request failed:", error.message);
-    const status = error.code === "auth/id-token-expired" || error.code === "auth/argument-error" ? 401 : 500;
+    const status = ["auth/id-token-expired", "auth/id-token-revoked", "auth/invalid-id-token", "auth/argument-error", "auth/user-disabled"].includes(error.code) ? 401 : 500;
     return reply(res, status, {
       error: status === 401 ? "Your sign-in expired. Sign in again and retry." : "Contract service is temporarily unavailable."
     });
