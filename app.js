@@ -20,6 +20,8 @@ function show(id){
 }
 async function applyAccess(user){
  currentUser=user||null;
+ contractUser=user||null;
+ contractState=null;
  isOwnerAdmin=false;
  if(user){
   try{
@@ -35,6 +37,7 @@ async function applyAccess(user){
  const note=document.getElementById('side-note');
  if(note)note.innerHTML=currentUser?'<b>● Member preview</b><br>Account access enabled. No real earnings or payouts are enabled.':'<b>● Public preview</b><br>Read the project information and rules. Create an account to enter the member workspace.';
  show(currentUser?'dashboard':'public');
+ if(currentUser)syncContract('snapshot');else renderContract();
 }
 window.addEventListener('fcm-auth-state',event=>applyAccess(event.detail?.user||null));
 setInterval(async()=>{if(!currentUser)return;try{const token=await currentUser.getIdTokenResult();const allowed=String(currentUser.email||'').toLowerCase()===ownerEmail&&token.claims.email_verified===true&&token.claims.firebase?.sign_in_provider==='custom'&&Number(token.claims.adminVerifiedUntil||0)>Math.floor(Date.now()/1000);if(allowed!==isOwnerAdmin){isOwnerAdmin=allowed;document.querySelectorAll('.admin-only').forEach(el=>el.hidden=!allowed);if(!allowed&&document.getElementById('admin')?.classList.contains('active'))show('dashboard')}}catch(error){console.warn('Could not refresh admin access state:',error)}},15000);
@@ -42,7 +45,6 @@ setInterval(async()=>{if(!currentUser)return;try{const token=await currentUser.g
 nav.forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go)));
 document.getElementById('menu').addEventListener('click',()=>side.classList.toggle('open'));
-applyAccess(null);
 const Engine=window.FCMContractEngine;
 let contractState=null,contractBusy=false,contractUser=null,lastSyncError="";
 const resetDemoButton=document.getElementById('demo-reset');
@@ -129,6 +131,7 @@ function updateContractClock(){
  if(remaining<=0)syncContract('snapshot');
 }
 setInterval(updateContractClock,1000);
+applyAccess(null);
 // Firebase authentication and Firestore-backed member features.
 import('./auth.js').then(()=>import('./member-data.js')).catch((error)=>console.error('Firebase modules failed to load:',error));
 
