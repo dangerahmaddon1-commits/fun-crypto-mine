@@ -132,16 +132,16 @@ applyAccess(null);
 import('./auth.js').then(()=>import('./member-data.js')).catch((error)=>console.error('Firebase modules failed to load:',error));
 
 const authNotice=document.querySelector('.side-note');
-if(authNotice)authNotice.innerHTML='<b>● Account secured</b><br>Firebase sign-in is enabled. Reward and payout integrations remain under development.';
+if(authNotice)authNotice.innerHTML='<b>● Account secured</b><br>Your points and withdrawal requests are tracked in your member account.';
 const systemStatus=document.querySelector('.top-right .status');
-if(systemStatus)systemStatus.textContent='● Firebase account access';
+if(systemStatus)systemStatus.textContent='● Account services online';
 const dashboardNotice=document.querySelector('#dashboard .notice div');
 if(dashboardNotice)dashboardNotice.innerHTML='<strong>Rewards account active.</strong> Completed sessions credit 10 points. Points convert at 1,000 points = 1 USDT. Withdrawal requests are reviewed and paid manually by the owner.';
 const settingsIntro=document.querySelector('#settings .intro');
-if(settingsIntro)settingsIntro.textContent='Update your display name below. Your sign-in email and password recovery are handled by Firebase Authentication. Your reward sessions and points balance are synced securely to your account.';
+if(settingsIntro)settingsIntro.textContent='Update your display name below. Your sign-in email and password recovery are managed securely. Your reward sessions and points balance are synced to your account.';
 const settingsEmail=document.querySelector('#settings input[disabled]');
 if(settingsEmail){settingsEmail.placeholder='Use the Account control above';settingsEmail.disabled=true}
 const settingsTag=document.querySelector('#settings .tag');
-if(settingsTag){settingsTag.textContent='Firebase Authentication enabled';settingsTag.classList.remove('wait')}
+if(settingsTag){settingsTag.textContent='Account security enabled';settingsTag.classList.remove('wait')}
 const activityEmpty=document.querySelector('#activity .empty');
 if(activityEmpty)activityEmpty.innerHTML='<b>Ledger activity</b>Completed reward sessions and processed USDT withdrawals are recorded here.';
