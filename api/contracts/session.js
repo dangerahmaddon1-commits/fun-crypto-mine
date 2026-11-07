@@ -1,7 +1,4 @@
 const crypto = require("node:crypto");
-const { initializeApp, cert, getApps } = require("firebase-admin/app");
-const { getAuth } = require("firebase-admin/auth");
-const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 
 const SESSION_MS = 60 * 60 * 1000;
 const POINTS_PER_SESSION = 10;
@@ -16,6 +13,9 @@ function reply(res, status, payload) {
 }
 
 function services() {
+  const { initializeApp, cert, getApps } = require("firebase-admin/app");
+  const { getAuth } = require("firebase-admin/auth");
+  const { getFirestore, FieldValue } = require("firebase-admin/firestore");
   if (!process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
     throw new Error("Missing Firebase service-account configuration.");
   }
