@@ -89,37 +89,9 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /withdrawalRequests/{requestId} {
-      allow create: if signedIn()
-        && request.resource.data.keys().hasOnly(["uid","email","amount","asset","network","walletAddress","status","createdAt"])
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.amount is number
-        && request.resource.data.amount >= 5
-        && request.resource.data.amount <= 100000
-        && request.resource.data.asset == "USDT"
-        && request.resource.data.network in ["TRC20","BEP20","ERC20"]
-        && request.resource.data.walletAddress is string
-        && request.resource.data.walletAddress.size() >= 12
-        && request.resource.data.walletAddress.size() <= 180
-        && request.resource.data.status == "pending"
-        && request.resource.data.createdAt == request.time;
+      // Requests and status changes are written only by the trusted wallet API.
       allow read: if ownerAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
-      allow update: if (ownerAdmin()
-          && resource.data.status == "pending"
-          && request.resource.data.status in ["approved","rejected"]
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","reviewedAt","reviewedBy"])
-          && request.resource.data.reviewedAt == request.time
-          && request.resource.data.reviewedBy == request.auth.uid)
-        || (ownerAdmin()
-          && resource.data.status == "approved"
-          && request.resource.data.status == "paid"
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status","paymentReference","paidAt","reviewedAt","reviewedBy"])
-          && request.resource.data.paymentReference is string
-          && request.resource.data.paymentReference.size() >= 6
-          && request.resource.data.paymentReference.size() <= 200
-          && request.resource.data.paidAt == request.time
-          && request.resource.data.reviewedAt == request.time
-          && request.resource.data.reviewedBy == request.auth.uid);
-      allow delete: if false;
+      allow create, update, delete: if false;
     }
     // Contract state and reward ledger are server-written only. Members can read their own records.
     match /contractAccounts/{uid} {
