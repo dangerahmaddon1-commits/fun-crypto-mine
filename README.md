@@ -4,7 +4,7 @@ A separate, compliance-first rewards platform prototype.
 
 ## Current state
 
-The site is a static responsive prototype with a browser-only virtual contract demonstration. Firebase Authentication is connected in the preview for email/password and Google sign-in. User profile names are stored in Firebase Auth. Contract progress is still browser-local and is not synced to accounts. It is not connected to advertising providers, offerwalls, mining infrastructure, payment processors or cryptocurrency wallets. Demo points are stored in the visitor's browser, are editable/resettable, have no monetary value and are not withdrawable. No balances, earnings, payouts, mining output or subscription purchases are real.
+The site is a static responsive prototype with Firebase Authentication and a server-authoritative virtual contract demonstration. Contract session starts and completions are processed through an authenticated Vercel API using Firebase Admin SDK and stored in Firestore. The server clock controls one-hour session expiry, daily limits and point awards; browser storage is no longer authoritative for contract progress. Each completed session creates a server-side ledger event in the same Firestore transaction as the account update. These remain simulated points with no monetary value and are not withdrawable. The platform is not connected to real mining infrastructure, advertising providers, offerwalls, payment processors or cryptocurrency wallets. No real mining output, earnings, payouts or subscription purchases exist.
 
 ## Public and member access
 
@@ -45,7 +45,7 @@ A client-side ad-blocker bait check displays a full-screen access notice and ret
 
 Do not accept deposits, sell mining contracts, issue tokens, activate paid subscriptions or process withdrawals until legal, licensing, tax, privacy, security, provider and operational requirements have been reviewed and approved. Never present virtual mining visuals as actual mining or promise fixed returns.
 
-Production contract progress must be server-authoritative. Do not trust browser clocks, localStorage, client-calculated balances or client-submitted session completions. Use immutable, idempotent ledger events, signed provider webhooks, reconciliation, risk controls and admin audit logs. Keep non-cash demo points separate from any future financial ledger.
+Contract session progress is server-authoritative in the current implementation. The endpoint verifies Firebase ID tokens, uses server time, enforces one active session and daily/cycle limits, and writes a unique completion event with the account update in one transaction. Keep non-cash demo points separate from any future financial ledger. This implementation does not make simulated points redeemable or provide proof of mining proceeds.
 
 
 ## Firestore member data foundation
