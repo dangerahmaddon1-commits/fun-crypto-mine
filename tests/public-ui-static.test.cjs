@@ -41,6 +41,7 @@ test("account settings update the Firebase display name and support password rec
   assert.match(member, /updateDoc\(doc\(db,"users",activeUser\.uid\),\{displayName,updatedAt:serverTimestamp\(\)\}\)/);
   assert.match(member, /sendPasswordResetEmail\(auth,activeUser\.email\)/);
   assert.match(member, /providerId==="password"/);
+  assert.match(app, /Update your display name below/);
 });
 
 test("membership copy does not claim review requests are unavailable", () => {
