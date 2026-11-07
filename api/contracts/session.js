@@ -154,3 +154,5 @@ module.exports = async function handler(req, res) {
     });
   }
 };
+
+module.exports._test = { utcDay, freshAccount, safeAccount, snapshot, SESSION_MS, POINTS_PER_SESSION, MAX_SESSIONS_PER_DAY, REQUIRED_ACTIVE_DAYS };
