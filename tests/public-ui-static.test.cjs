@@ -47,3 +47,9 @@ test("membership copy does not claim review requests are unavailable", () => {
   assert.match(html, /Nothing is available to purchase/);
   assert.match(html, /Signed-in members may submit a no-payment review request/);
 });
+
+test("public launch messaging does not imply earning features are already available", () => {
+  assert.match(html, /Earning features are planned but not active/);
+  assert.doesNotMatch(html, /Earning features will start soon/);
+  assert.doesNotMatch(html, /<div class="avatar">G<\/div>/);
+});
