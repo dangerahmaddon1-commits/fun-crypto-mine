@@ -53,15 +53,17 @@ async function syncContract(action='snapshot'){
  if(!contractUser)return;
  if(contractBusy)return;
  contractBusy=true;
+ const requestUser=contractUser;
  const message=document.getElementById('session-message');
  try{
-  const token=await contractUser.getIdToken();
+  const token=await requestUser.getIdToken();
   const response=await fetch('/api/contracts/session',{
    method:'POST',
    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
    body:JSON.stringify({action})
   });
   const payload=await response.json().catch(()=>({}));
+  if(contractUser?.uid!==requestUser.uid)return;
   if(!response.ok)throw new Error(payload.error||'Contract service unavailable.');
   contractState=payload.state;
   lastSyncError='';
@@ -74,11 +76,14 @@ async function syncContract(action='snapshot'){
    else message.textContent=contractState.session?'Your session is active. The server checks its completion time.':'No active session.';
   }
  }catch(error){
-  lastSyncError=error.message||'Could not sync contract progress.';
-  if(message)message.textContent=lastSyncError;
+  if(contractUser?.uid===requestUser.uid){
+   lastSyncError=error.message||'Could not sync contract progress.';
+   if(message)message.textContent=lastSyncError;
+  }
  }finally{
   contractBusy=false;
   renderContract();
+  if(contractUser&&contractUser.uid!==requestUser.uid)syncContract('snapshot');
  }
 }
 function renderContract(){
