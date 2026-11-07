@@ -49,8 +49,10 @@ test("membership copy does not claim review requests are unavailable", () => {
   assert.match(html, /Signed-in members may submit a no-payment review request/);
 });
 
-test("public launch messaging does not imply earning features are already available", () => {
-  assert.match(html, /Earning features are planned but not active/);
-  assert.doesNotMatch(html, /Earning features will start soon/);
+test("public rewards copy states the points conversion and manual payout model", () => {
+  assert.match(html, /1,000 points = 1 USDT/);
+  assert.match(html, /minimum withdrawal is 5 USDT/i);
+  assert.match(html, /sends approved payments manually/i);
+  assert.doesNotMatch(html, /Demo points have no cash or crypto value/);
   assert.doesNotMatch(html, /<div class="avatar">G<\/div>/);
 });
