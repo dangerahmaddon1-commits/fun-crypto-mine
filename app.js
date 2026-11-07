@@ -88,7 +88,7 @@ function renderContract(){
  document.getElementById('contract-points').textContent=empty?'—':Number(state.points||0).toLocaleString();
  document.getElementById('contract-days').textContent=empty?'—':String(state.activeDays||0);
  document.getElementById('contract-today').textContent=empty?'—':String(state.sessionsStartedToday||0);
- document.getElementById('contract-status').textContent=empty?'Connecting…':done?'Cycle complete':active?'Session running':state.activeDays?'Paused / ready':'Not started';
+ document.getElementById('contract-status').textContent=empty?'Connecting…':done?'Cycle complete':active?'Session running':(state?.activeDays?'Paused / ready':'Not started');
  document.getElementById('contract-status-note').textContent=empty?'Loading account-backed progress':done?'Demo cycle completed':active?'Server-timed session is in progress':'Missed days preserve progress';
  const progress=empty?0:Number(state.progressPercent||0);
  document.getElementById('contract-progress-label').textContent=progress+'% complete';
