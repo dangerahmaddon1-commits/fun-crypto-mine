@@ -43,39 +43,92 @@ nav.forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>show(b.dataset.go)));
 document.getElementById('menu').addEventListener('click',()=>side.classList.toggle('open'));
 applyAccess(null);
-const CONTRACT_KEY='fcm_virtual_contract_demo_v1',Engine=window.FCMContractEngine;
-let storageAvailable=true;
-function loadContract(){try{return Engine.sanitizeState(JSON.parse(localStorage.getItem(CONTRACT_KEY)))}catch(error){storageAvailable=false;return Engine.freshState()}}
-let contract=loadContract();
-function saveContract(){try{localStorage.setItem(CONTRACT_KEY,JSON.stringify(contract));storageAvailable=true;return true}catch(error){storageAvailable=false;return false}}
-function renderContract(){
-const completion=Engine.completeDueSession(contract,Date.now());contract=completion.state;if(completion.completed)saveContract();
-const state=Engine.snapshot(contract,Date.now()),active=!!state.session,done=state.cycleCompleted;
-document.getElementById('contract-points').textContent=state.points.toLocaleString();
-document.getElementById('contract-days').textContent=state.activeDays;
-document.getElementById('contract-today').textContent=state.sessionsStartedToday;
-document.getElementById('contract-status').textContent=done?'Cycle complete':active?'Session running':state.activeDays?'Paused / ready':'Not started';
-document.getElementById('contract-status-note').textContent=done?'Demo cycle completed':active?'Session is in progress':'Missed days preserve progress';
-document.getElementById('contract-progress-label').textContent=state.progressPercent+'% complete';
-document.getElementById('contract-progress-bar').style.width=state.progressPercent+'%';
-document.getElementById('session-state').textContent=active?'SESSION ACTIVE':'READY TO START';
-document.getElementById('session-timer').textContent=active?Engine.formatRemaining(state.session.endsAt-Date.now()):'01:00:00';
-document.getElementById('session-description').textContent=active?'Your demo session ends at '+new Date(state.session.endsAt).toLocaleString()+' on this device.':'Start a virtual session. Completion awards 10 simulated points.';
-document.getElementById('session-start').disabled=active||state.sessionsStartedToday>=state.maxSessionsPerDay||done;
-document.getElementById('session-start').textContent=active?'Session running':state.sessionsStartedToday>=state.maxSessionsPerDay?'Daily session limit reached':done?'Cycle completed':'Activate 1-hour session';
-document.getElementById('session-message').textContent=active?'Timer continues if you close this page.':state.sessionsStartedToday>=state.maxSessionsPerDay?'You have used all three demo activations for today.':storageAvailable?'No active session.':'Browser storage is unavailable; demo progress may be lost.';
-const complete=document.getElementById('contract-complete');complete.classList.toggle('contract-complete',done);complete.replaceChildren();
-const completeTitle=document.createElement('b');completeTitle.textContent=done?'Demo cycle completed':'Cycle not yet complete';
-const completeText=document.createTextNode(done?'You completed 30 active days and earned '+state.points+' simulated points. These points are not money and cannot be withdrawn.':'Complete sessions across 30 active days to finish this demo cycle. Missing a day pauses progress; it does not reset it.');
-complete.append(completeTitle,completeText);
-const history=document.getElementById('contract-history');history.replaceChildren();
-if(state.history.length){state.history.forEach(entry=>{const row=document.createElement('div'),label=document.createElement('span'),value=document.createElement('span');row.className='contract-history-row';label.textContent=entry.type+' · '+entry.day;value.textContent=entry.type==='Session completed'?'+'+entry.points+' pts':'Started';row.append(label,value);history.append(row)})}
-else{const empty=document.createElement('div'),bold=document.createElement('b');empty.className='empty';bold.textContent='No demo activity yet';empty.append(bold,document.createTextNode('Completed sessions will appear here.'));history.append(empty)}
+const Engine=window.FCMContractEngine;
+let contractState=null,contractBusy=false,contractUser=null,lastSyncError="";
+const resetDemoButton=document.getElementById('demo-reset');
+if(resetDemoButton){resetDemoButton.hidden=true;resetDemoButton.disabled=true}
+async function syncContract(action='snapshot'){
+ if(!contractUser)return;
+ if(contractBusy)return;
+ contractBusy=true;
+ const message=document.getElementById('session-message');
+ try{
+  const token=await contractUser.getIdToken();
+  const response=await fetch('/api/contracts/session',{
+   method:'POST',
+   headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+   body:JSON.stringify({action})
+  });
+  const payload=await response.json().catch(()=>({}));
+  if(!response.ok)throw new Error(payload.error||'Contract service unavailable.');
+  contractState=payload.state;
+  lastSyncError='';
+  if(message){
+   if(action==='start'&&payload.started)message.textContent='Your one-hour server-timed session is active.';
+   else if(action==='start'&&payload.reason==='session_active')message.textContent='A session is already running.';
+   else if(action==='start'&&payload.reason==='daily_limit')message.textContent='You have used all three sessions for today.';
+   else if(action==='start'&&payload.reason==='cycle_complete')message.textContent='This 30-active-day cycle is complete.';
+   else if(payload.completed)message.textContent='Session completed. 10 simulated points were added to your account.';
+   else message.textContent=contractState.session?'Your session is active. The server checks its completion time.':'No active session.';
+  }
+ }catch(error){
+  lastSyncError=error.message||'Could not sync contract progress.';
+  if(message)message.textContent=lastSyncError;
+ }finally{
+  contractBusy=false;
+  renderContract();
+ }
 }
-document.getElementById('session-start').addEventListener('click',()=>{const result=Engine.startSession(contract,Date.now());contract=result.state;saveContract();if(!result.ok){const messages={session_active:'A session is already running.',cycle_complete:'This demo cycle is complete.',daily_limit:'You have used all three demo activations for today.'};document.getElementById('session-message').textContent=messages[result.reason]||'Unable to start a session.'}renderContract()});
-document.getElementById('demo-reset').addEventListener('click',()=>{if(!confirm('Reset all virtual contract demo data stored in this browser?'))return;contract=Engine.freshState();saveContract();renderContract()});
-setInterval(()=>{if(contract.session&&Date.now()>=contract.session.endsAt){const result=Engine.completeDueSession(contract,Date.now());contract=result.state;if(result.completed)saveContract()}if(document.getElementById('contract').classList.contains('active'))renderContract()},1000);
-
+function renderContract(){
+ const state=contractState;
+ const empty=!state;
+ const active=!!state?.session,done=!!state?.cycleCompleted;
+ document.getElementById('contract-points').textContent=empty?'—':Number(state.points||0).toLocaleString();
+ document.getElementById('contract-days').textContent=empty?'—':String(state.activeDays||0);
+ document.getElementById('contract-today').textContent=empty?'—':String(state.sessionsStartedToday||0);
+ document.getElementById('contract-status').textContent=empty?'Connecting…':done?'Cycle complete':active?'Session running':state.activeDays?'Paused / ready':'Not started';
+ document.getElementById('contract-status-note').textContent=empty?'Loading account-backed progress':done?'Demo cycle completed':active?'Server-timed session is in progress':'Missed days preserve progress';
+ const progress=empty?0:Number(state.progressPercent||0);
+ document.getElementById('contract-progress-label').textContent=progress+'% complete';
+ document.getElementById('contract-progress-bar').style.width=progress+'%';
+ document.getElementById('session-state').textContent=active?'SESSION ACTIVE':'READY TO START';
+ const remaining=active?Math.max(0,Number(state.session.endsAt)-Date.now()):3600000;
+ document.getElementById('session-timer').textContent=Engine.formatRemaining(remaining);
+ document.getElementById('session-description').textContent=active?'Your session is stored on the server and completes after one hour.':'Start a server-timed virtual session. Completion awards 10 simulated points.';
+ const startButton=document.getElementById('session-start');
+ startButton.disabled=empty||contractBusy||active||Number(state?.sessionsStartedToday||0)>=3||done;
+ startButton.textContent=active?'Session running':done?'Cycle completed':Number(state?.sessionsStartedToday||0)>=3?'Daily session limit reached':'Activate 1-hour session';
+ if(empty&&!lastSyncError)document.getElementById('session-message').textContent='Connecting to your secure contract account…';
+ const complete=document.getElementById('contract-complete');
+ complete.classList.toggle('contract-complete',done);
+ complete.replaceChildren();
+ const completeTitle=document.createElement('b');
+ completeTitle.textContent=done?'Demo cycle completed':'Cycle not yet complete';
+ const completeText=document.createTextNode(done?'You completed 30 active days and earned '+state.points+' simulated points. These points are not money and cannot be withdrawn.':'Complete sessions across 30 active days to finish this demo cycle. Missing a day pauses progress; it does not reset it.');
+ complete.append(completeTitle,completeText);
+ const history=document.getElementById('contract-history');history.replaceChildren();
+ if(state?.history?.length){
+  state.history.forEach(entry=>{
+   const row=document.createElement('div'),label=document.createElement('span'),value=document.createElement('span');
+   row.className='contract-history-row';label.textContent=entry.type+' · '+entry.day;
+   value.textContent=entry.type==='Session completed'?'+'+entry.points+' pts':'Started';
+   row.append(label,value);history.append(row);
+  });
+ }else{
+  const emptyNode=document.createElement('div'),bold=document.createElement('b');
+  emptyNode.className='empty';bold.textContent=empty?'Loading account activity…':'No contract activity yet';
+  emptyNode.append(bold,document.createTextNode(empty?'Your server-backed contract activity will appear here.':'Completed sessions will appear here.'));
+  history.append(emptyNode);
+ }
+}
+document.getElementById('session-start').addEventListener('click',()=>syncContract('start'));
+function updateContractClock(){
+ if(!contractState?.session)return;
+ const remaining=Number(contractState.session.endsAt)-Date.now();
+ document.getElementById('session-timer').textContent=Engine.formatRemaining(remaining);
+ if(remaining<=0)syncContract('snapshot');
+}
+setInterval(updateContractClock,1000);
 // Firebase authentication and Firestore-backed member features.
 import('./auth.js').then(()=>import('./member-data.js')).catch((error)=>console.error('Firebase modules failed to load:',error));
 
