@@ -405,6 +405,8 @@ async function resolveWithdrawalRequest(id,nextStatus,paymentReference=""){
     await walletApi(activeUser,{action:"resolve",requestId:id,status:nextStatus,paymentReference});
     await loadWithdrawalRequests(activeUser);
     await loadWalletBalance(activeUser);
+    await loadActivityLedger(activeUser);
+    if(typeof window.syncContract==="function")window.syncContract("snapshot");
   }catch(error){alert(error.message||"Could not update withdrawal request.");console.error(error)}
 }
 async function submitWithdrawal(event){
@@ -427,6 +429,7 @@ async function submitWithdrawal(event){
     if(message)message.textContent="Your request has been added to the owner review queue.";
     await loadWithdrawalRequests(activeUser);
     await loadWalletBalance(activeUser);
+    await loadActivityLedger(activeUser);
   }catch(error){
     if(message)message.textContent=error.message||"Could not submit your withdrawal request.";
     console.error(error);
