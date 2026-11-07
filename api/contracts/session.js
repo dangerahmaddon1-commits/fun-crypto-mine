@@ -24,7 +24,7 @@ function services() {
     credential: cert(serviceAccount),
     projectId: "fun-crypto"
   });
-  return { auth: getAuth(app), db: getFirestore(app) };
+  return { auth: getAuth(app), db: getFirestore(app), FieldValue };
 }
 
 function utcDay(timestamp) {
@@ -83,7 +83,7 @@ module.exports = async function handler(req, res) {
   if (!match) return reply(res, 401, { error: "Sign in to access your contract." });
 
   try {
-    const { auth, db } = services();
+    const { auth, db, FieldValue } = services();
     const decoded = await auth.verifyIdToken(match[1], true);
     const uid = decoded.uid;
     const action = req.body && req.body.action;
