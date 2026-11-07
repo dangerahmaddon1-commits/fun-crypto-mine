@@ -86,7 +86,7 @@ if(systemStatus)systemStatus.textContent='● Firebase auth · Demo mode';
 const dashboardNotice=document.querySelector('#dashboard .notice div');
 if(dashboardNotice)dashboardNotice.innerHTML='<strong>Preview only — no real earnings yet.</strong> Firebase sign-in is available. Balances, subscriptions, mining and crypto payouts are not active. No income is promised.';
 const settingsIntro=document.querySelector('#settings .intro');
-if(settingsIntro)settingsIntro.textContent='Manage your Firebase account using the Account control in the top-right. Your sign-in identity is handled by Firebase Authentication. Contract progress is still stored locally on this device and is not synced to your account.';
+if(settingsIntro)settingsIntro.textContent='Update your display name below. Your sign-in email and password recovery are handled by Firebase Authentication. Contract progress remains device-local and is not synced to your account.';
 const settingsEmail=document.querySelector('#settings input[disabled]');
 if(settingsEmail){settingsEmail.placeholder='Use the Account control above';settingsEmail.disabled=true}
 const settingsTag=document.querySelector('#settings .tag');
