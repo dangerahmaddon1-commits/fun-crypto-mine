@@ -39,12 +39,12 @@ function safeAccount(data) {
   if (!data || typeof data !== "object") return freshAccount();
   const points = Number.isSafeInteger(data.points) && data.points >= 0 ? data.points : 0;
   const activeDays = Array.isArray(data.activeDays)
-    ? [...new Set(data.activeDays.filter(day => typeof day === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(day)))].slice(0, REQUIRED_ACTIVE_DAYS)
+    ? [...new Set(data.activeDays.filter(day => typeof day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(day)))].slice(0, REQUIRED_ACTIVE_DAYS)
     : [];
   const sessionsByDay = {};
   if (data.sessionsByDay && typeof data.sessionsByDay === "object") {
     for (const [day, count] of Object.entries(data.sessionsByDay)) {
-      if (/^\\d{4}-\\d{2}-\\d{2}$/.test(day) && Number.isInteger(count) && count >= 0 && count <= MAX_SESSIONS_PER_DAY) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(day) && Number.isInteger(count) && count >= 0 && count <= MAX_SESSIONS_PER_DAY) {
         sessionsByDay[day] = count;
       }
     }
@@ -79,7 +79,7 @@ function snapshot(account, now) {
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return reply(res, 405, { error: "Method not allowed." });
   const authorization = req.headers.authorization || "";
-  const match = authorization.match(/^Bearer\\s+(.+)$/i);
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
   if (!match) return reply(res, 401, { error: "Sign in to access your contract." });
 
   try {
