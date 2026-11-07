@@ -1,10 +1,10 @@
 # Fun Crypto Mine
 
-A separate, compliance-first rewards platform prototype.
+A member rewards platform with server-authoritative one-hour reward sessions and manually processed USDT withdrawals.
 
 ## Current state
 
-The site is a static responsive prototype with Firebase Authentication and a server-authoritative virtual contract demonstration. Contract session starts and completions are processed through an authenticated Vercel API using Firebase Admin SDK and stored in Firestore. The server clock controls one-hour session expiry, daily limits and point awards; browser storage is no longer authoritative for contract progress. Each completed session creates a server-side ledger event in the same Firestore transaction as the account update. These remain simulated points with no monetary value and are not withdrawable. The platform is not connected to real mining infrastructure, advertising providers, offerwalls, payment processors or cryptocurrency wallets. No real mining output, earnings, payouts or subscription purchases exist.
+The site is a responsive member rewards platform with Firebase Authentication and a server-authoritative one-hour reward-session service. Session starts and completions are processed through an authenticated Vercel API using Firebase Admin SDK and stored in Firestore. Each completed session credits 10 points and creates a server-side ledger event atomically with the account update. The wallet converts 1,000 points to 1 USDT, with a 5 USDT minimum withdrawal. The owner reviews requests and sends USDT manually; the server reserves points while a request is pending or approved and deducts them only when the owner records the successful transfer and transaction reference. No automated crypto transfer or actual blockchain mining is implemented.
 
 ## Public and member access
 
@@ -25,7 +25,7 @@ A client-side ad-blocker bait check displays a full-screen access notice and ret
 ## Virtual Mining Hub
 
 - One new session lasts 1 hour. Existing browser-local 8-hour demo sessions are allowed to finish after the duration change; new sessions use the 1-hour duration.
-- Each completed session awards 10 simulated points.
+- Each completed session awards 10 points, recorded in the server-side account.
 - There is no daily session cap or 30-day cycle.
 - A member may start another session as soon as the previous one completes.
 - Only one active session is allowed per account at a time.
@@ -36,19 +36,19 @@ A client-side ad-blocker bait check displays a full-screen access notice and ret
 - Potential eligible surveys, sponsored tasks and offerwalls, only where provider terms permit.
 - Potential independently verified mining proceeds as a separate future module.
 - Premium subscriptions, if launched, provide software features only; no guaranteed earning increase.
-- Crypto payouts and any points-to-value conversion are disabled pending legal, provider, security, funding and compliance approval.
+- Points redeem at 1,000 points = 1 USDT. Minimum withdrawal is 5 USDT. Requests are owner-reviewed and manually paid; no exchange or wallet integration sends funds automatically.
 - Internal margin and revenue-allocation assumptions are not presented as public reward promises. User-facing reward rules must still explain eligibility, calculations, fees, reversals and payment timing accurately.
 
 ## Security and launch gates
 
 Do not accept deposits, sell mining contracts, issue tokens, activate paid subscriptions or process withdrawals until legal, licensing, tax, privacy, security, provider and operational requirements have been reviewed and approved. Never present virtual mining visuals as actual mining or promise fixed returns.
 
-Contract session progress is server-authoritative in the current implementation. The endpoint verifies Firebase ID tokens, uses server time, enforces one active session at a time without daily or cycle caps, and writes a unique completion event with the account update in one transaction. Keep non-cash demo points separate from any future financial ledger. This implementation does not make simulated points redeemable or provide proof of mining proceeds.
+Contract session progress is server-authoritative. The endpoint verifies Firebase ID tokens, uses server time, enforces one active session at a time without daily or cycle caps, and writes a unique completion event with the account update in one transaction. These points are the balance used by the wallet redemption flow; they are not evidence of blockchain mining output.
 
 
 ## Firestore member data foundation
 
-The member data module uses the existing Firebase project `fun-crypto` and its default Cloud Firestore database. It creates a minimal user profile, a unique invite code, one-time referral attribution, membership requests and owner-managed membership records. It does not create financial balances, reward credits, purchases or payouts.
+The member data module uses the existing Firebase project `fun-crypto` and its default Cloud Firestore database. It creates a minimal user profile, a unique invite code, one-time referral attribution, membership requests and owner-managed membership records. Reward points are maintained by the server-side contract account and the wallet API handles redemption requests and payout settlement.
 
 ### Publish Firestore rules
 
@@ -61,7 +61,7 @@ The owner must sign in with Google using that exact verified address for Firesto
 - Invite codes and referral attribution are for tracking only. No referral commissions or rewards are active.
 - Membership requests are requests for manual review, not purchases. There is no checkout or payment collection.
 - Only the owner can activate or reject a membership request. Activation is a manual account entitlement and must follow independently verified payment or an explicitly complimentary decision.
-- Withdrawal requests are an intake queue only: the site does not calculate eligible balances, reserve funds, or send crypto. The owner must independently verify source funds, eligibility, destination and network before approving; marking paid requires an external transaction reference. No payout is promised.
+- The wallet API validates requests against the server-side points balance and reserves points for pending or approved requests. The owner verifies available funds, destination and network, sends USDT manually, then records the external transaction reference. Points are deducted only when the request is marked paid.
 
 ## Deploy
 
@@ -98,4 +98,4 @@ The owner-only Admin console reads aggregate Firestore counts for total register
 
 Signed-in members can submit a Starter or Pro membership review request. Requests are manual-review intake only: they do not collect payment, activate a paid plan, or promise higher rewards. The owner queue can approve or reject requests, and an approved entitlement lasts 30 days.
 
-Withdrawal requests remain manual-review intake only. An approved request is not paid until the owner has independently sent funds and records an external transaction reference. No balance calculation, automated payout, or withdrawable reward ledger is enabled.
+USDT withdrawals are manual. The wallet API calculates available points, enforces the 5 USDT minimum and 1,000:1 conversion, prevents overlapping open requests, and atomically deducts points plus writes a ledger entry only when the owner records a successful external transfer.
