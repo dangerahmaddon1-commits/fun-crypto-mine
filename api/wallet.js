@@ -44,7 +44,7 @@ async function reservedPoints(db, uid) {
   const snap = await db.collection("withdrawalRequests").where("uid", "==", uid).get();
   return snap.docs.reduce((sum, item) => {
     const data = item.data();
-    return sum + (["pending", "approved"].includes(data.status) ? safePoints(data.pointsRequested) : 0);
+    return sum + (["pending", "approved"].includes(data.status) ? safePoints(data.pointsRequested || Math.round(Number(data.amount) * POINTS_PER_USDT)) : 0);
   }, 0);
 }
 
