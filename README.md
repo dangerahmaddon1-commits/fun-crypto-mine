@@ -58,7 +58,7 @@ The owner must sign in with Google using that exact verified address for Firesto
 
 ### Membership and referrals status
 
-- Invite codes and referral attribution are for tracking only. No referral commissions or rewards are active.
+- A valid new-member referral is credited once: 20 points to the inviter and 10 points to the new member. The server prevents self-referrals and duplicate claims.
 - Membership requests are requests for manual review, not purchases. There is no checkout or payment collection.
 - Only the owner can activate or reject a membership request. Activation is a manual account entitlement and must follow independently verified payment or an explicitly complimentary decision.
 - The wallet API validates requests against the server-side points balance and reserves points for pending or approved requests. The owner verifies available funds, destination and network, sends USDT manually, then records the external transaction reference. Points are deducted only when the request is marked paid.
