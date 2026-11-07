@@ -30,3 +30,20 @@ test("Google branding metadata references the square site logo", () => {
   assert.match(html, /https:\/\/fun-crypto-mine\.vercel\.app\/logo\.svg/);
   assert.match(fs.readFileSync(path.join(__dirname, "..", "logo.svg"), "utf8"), /viewBox="0 0 512 512"/);
 });
+
+test("account settings update the Firebase display name and support password recovery", () => {
+  assert.match(html, /id="profile-form"/);
+  assert.match(html, /id="profile-display-name"/);
+  assert.match(html, /id="profile-email" type="email" disabled/);
+  assert.match(html, /id="profile-password-reset"/);
+  const member = fs.readFileSync(path.join(__dirname, "..", "member-data.js"), "utf8");
+  assert.match(member, /updateProfile\(activeUser,\{displayName\}\)/);
+  assert.match(member, /updateDoc\(doc\(db,"users",activeUser\.uid\),\{displayName,updatedAt:serverTimestamp\(\)\}\)/);
+  assert.match(member, /sendPasswordResetEmail\(auth,activeUser\.email\)/);
+  assert.match(member, /providerId==="password"/);
+});
+
+test("membership copy does not claim review requests are unavailable", () => {
+  assert.match(html, /Nothing is available to purchase/);
+  assert.match(html, /Signed-in members may submit a no-payment review request/);
+});
