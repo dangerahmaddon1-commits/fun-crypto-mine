@@ -446,7 +446,9 @@ async function boot(user){
     await loadReferralData(user,profile);
     await loadMembership(user);
     await loadMembershipRequestStatus(user);
-    await loadWithdrawalRequests(user);\n    await loadWalletBalance(user);\n    await loadActivityLedger(user);
+    await loadWithdrawalRequests(user);
+    await loadWalletBalance(user);
+    await loadActivityLedger(user);
     if(isOwner){await loadMembershipRequests();await loadAdminOverview()}
   }catch(error){
     console.error("Firestore member data unavailable:",error);
