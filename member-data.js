@@ -28,6 +28,33 @@ async function walletApi(user,payload){
   if(!response.ok)throw new Error(result.error||"Wallet request failed.");
   return result;
 }
+async function loadActivityLedger(user){
+  const container=$("activity-ledger");
+  if(!container)return;
+  try{
+    const snapshot=await getDocs(query(collection(db,"contractLedger"),where("uid","==",user.uid),limit(100)));
+    container.replaceChildren();
+    if(snapshot.empty){showMessage(container,"No reward activity yet");return}
+    const entries=snapshot.docs.map(item=>({id:item.id,...item.data()}));
+    entries.sort((a,b)=>{
+      const at=a.createdAt?.toMillis?a.createdAt.toMillis():0;
+      const bt=b.createdAt?.toMillis?b.createdAt.toMillis():0;
+      return bt-at;
+    });
+    entries.forEach(data=>{
+      const row=document.createElement("div");row.className="fcm-request-row";
+      const details=document.createElement("div");
+      const heading=document.createElement("strong");
+      heading.textContent=data.type==="usdt_withdrawal"?"USDT withdrawal":data.type==="contract_session_reward"?"Completed reward session":"Account adjustment";
+      const meta=document.createElement("div");meta.className="fcm-request-meta";
+      meta.textContent=safeDate(data.createdAt)+(data.amountUsdt?(" · "+Number(data.amountUsdt).toFixed(2)+" USDT"):"");
+      const points=document.createElement("span");points.className="fcm-request-status";
+      const amount=Number(data.points||0);
+      points.textContent=(amount>0?"+":"")+(amount.toLocaleString())+" pts";
+      details.append(heading,meta);row.append(details,points);container.append(row);
+    });
+  }catch(error){showMessage(container,"Could not load account activity.");console.error("Activity ledger unavailable:",error)}
+}
 async function loadWalletBalance(user){
   try{
     const result=await walletApi(user,{action:"balance"});
@@ -416,7 +443,7 @@ async function boot(user){
     await loadReferralData(user,profile);
     await loadMembership(user);
     await loadMembershipRequestStatus(user);
-    await loadWithdrawalRequests(user);\n    await loadWalletBalance(user);
+    await loadWithdrawalRequests(user);\n    await loadWalletBalance(user);\n    await loadActivityLedger(user);
     if(isOwner){await loadMembershipRequests();await loadAdminOverview()}
   }catch(error){
     console.error("Firestore member data unavailable:",error);
