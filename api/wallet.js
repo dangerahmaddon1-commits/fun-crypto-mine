@@ -2,6 +2,8 @@ const crypto = require("node:crypto");
 const OWNER_EMAIL = "dangerahmaddon1@gmail.com";
 const POINTS_PER_USDT = 1000;
 const MIN_WITHDRAWAL_USDT = 5;
+const REFERRER_REWARD_POINTS = 20;
+const INVITEE_REWARD_POINTS = 10;
 const NETWORKS = new Set(["TRC20", "BEP20", "ERC20"]);
 
 function reply(res, status, payload) {
@@ -109,6 +111,74 @@ module.exports = async function handler(req, res) {
       return reply(res, 201, { request: result, balance: await getBalance(db, uid) });
     }
 
+    if (action === "claimReferral") {
+      const profileRef = db.collection("users").doc(uid);
+      const eventRef = db.collection("referralEvents").doc(uid);
+      const claimRef = db.collection("referralRewardClaims").doc(uid);
+      const result = await db.runTransaction(async transaction => {
+        const profileSnap = await transaction.get(profileRef);
+        const eventSnap = await transaction.get(eventRef);
+        const claimSnap = await transaction.get(claimRef);
+        if (claimSnap.exists) return { credited: false, reason: "already_credited" };
+        if (!profileSnap.exists || !eventSnap.exists) return { credited: false, reason: "no_referral" };
+        const profile = profileSnap.data();
+        const event = eventSnap.data();
+        const referrerUid = String(event.referrerUid || "");
+        if (!referrerUid || referrerUid === uid || profile.referredBy !== referrerUid
+          || event.referredUid !== uid) return { credited: false, reason: "invalid_referral" };
+
+        const referrerProfileRef = db.collection("users").doc(referrerUid);
+        const referrerProfileSnap = await transaction.get(referrerProfileRef);
+        if (!referrerProfileSnap.exists) return { credited: false, reason: "referrer_missing" };
+
+        const inviteeAccountRef = db.collection("contractAccounts").doc(uid);
+        const referrerAccountRef = db.collection("contractAccounts").doc(referrerUid);
+        const inviteeLedgerRef = db.collection("contractLedger").doc("referral_invitee_" + uid);
+        const referrerLedgerRef = db.collection("contractLedger").doc("referral_inviter_" + uid);
+        const [inviteeAccountSnap, referrerAccountSnap, inviteeLedgerSnap, referrerLedgerSnap] = await Promise.all([
+          transaction.get(inviteeAccountRef), transaction.get(referrerAccountRef),
+          transaction.get(inviteeLedgerRef), transaction.get(referrerLedgerRef)
+        ]);
+        if (inviteeLedgerSnap.exists || referrerLedgerSnap.exists) throw new Error("REFERRAL_LEDGER_CONFLICT");
+
+        const nowDay = new Date().toISOString().slice(0, 10);
+        const updateAccount = (snapshot, targetUid, reward, rewardType) => {
+          const account = snapshot.exists ? snapshot.data() : {};
+          const points = safePoints(account.points);
+          const history = Array.isArray(account.history) ? account.history.slice(0, 49) : [];
+          history.unshift({ type: rewardType, day: nowDay, at: Date.now(), points: reward });
+          transaction.set(snapshot.ref, {
+            ...account, uid: targetUid, points: points + reward, history,
+            activeDays: Array.isArray(account.activeDays) ? account.activeDays : [],
+            sessionsByDay: account.sessionsByDay && typeof account.sessionsByDay === "object" ? account.sessionsByDay : {},
+            session: account.session || null,
+            updatedAt: FieldValue.serverTimestamp()
+          });
+        };
+        updateAccount(inviteeAccountSnap, uid, INVITEE_REWARD_POINTS, "Referral welcome reward");
+        updateAccount(referrerAccountSnap, referrerUid, REFERRER_REWARD_POINTS, "Referral invite reward");
+
+        transaction.create(inviteeLedgerRef, {
+          uid, type: "referral_invitee_reward", points: INVITEE_REWARD_POINTS,
+          referredUid: uid, referrerUid, createdAt: FieldValue.serverTimestamp()
+        });
+        transaction.create(referrerLedgerRef, {
+          uid: referrerUid, type: "referral_inviter_reward", points: REFERRER_REWARD_POINTS,
+          referredUid: uid, referrerUid, createdAt: FieldValue.serverTimestamp()
+        });
+        transaction.create(claimRef, {
+          referredUid: uid, referrerUid,
+          inviteePoints: INVITEE_REWARD_POINTS, referrerPoints: REFERRER_REWARD_POINTS,
+          createdAt: FieldValue.serverTimestamp()
+        });
+        transaction.update(eventRef, {
+          rewardStatus: "credited", rewardCreditedAt: FieldValue.serverTimestamp()
+        });
+        return { credited: true, inviteePoints: INVITEE_REWARD_POINTS, referrerPoints: REFERRER_REWARD_POINTS };
+      });
+      return reply(res, 200, { referral: result });
+    }
+
     if (action === "resolve") {
       if (!isOwnerAdmin(decoded)) return reply(res, 403, { error: "Admin verification is required." });
       const requestId = String(body.requestId || "");
@@ -192,4 +262,4 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports._test = { POINTS_PER_USDT, MIN_WITHDRAWAL_USDT, safePoints, isOwnerAdmin };
+module.exports._test = { POINTS_PER_USDT, MIN_WITHDRAWAL_USDT, REFERRER_REWARD_POINTS, INVITEE_REWARD_POINTS, safePoints, isOwnerAdmin };
