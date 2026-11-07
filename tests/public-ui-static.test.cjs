@@ -56,3 +56,8 @@ test("public rewards copy states the points conversion and manual payout model",
   assert.doesNotMatch(html, /Demo points have no cash or crypto value/);
   assert.doesNotMatch(html, /<div class="avatar">G<\/div>/);
 });
+
+test("referral page displays the active one-time reward split", () => {
+  assert.match(html, /you receive 20 points and they receive 10 points/i);
+  assert.match(html, /self-referrals are not eligible/i);
+});
