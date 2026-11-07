@@ -88,6 +88,11 @@ function renderContract(){
  const state=contractState;
  const empty=!state;
  const active=!!state?.session;
+ const pointsText=empty?'—':Number(state.points||0).toLocaleString()+' pts';
+ const available=document.getElementById('dashboard-available');
+ const lifetime=document.getElementById('dashboard-lifetime');
+ if(available)available.textContent=pointsText;
+ if(lifetime)lifetime.textContent=pointsText;
  document.getElementById('contract-points').textContent=empty?'—':Number(state.points||0).toLocaleString();
  document.getElementById('contract-status').textContent=empty?'Connecting…':active?'Session running':(state?.points?'Ready for next session':'Not started');
  document.getElementById('contract-status-note').textContent=empty?'Loading account-backed progress':active?'Server-timed session is in progress':'Activate another session whenever the previous one completes';
