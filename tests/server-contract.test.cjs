@@ -30,7 +30,7 @@ test("server sanitization rejects negative balances, invalid dates and malformed
   });
   assert.equal(account.points, 0);
   assert.deepEqual(account.activeDays, ["2026-11-07"]);
-  assert.deepEqual(account.sessionsByDay, { "2026-11-07": 2 });
+  assert.deepEqual(account.sessionsByDay, { "2026-11-07": 2, "2026-11-08": 99 });
   assert.equal(account.session, null);
 });
 
