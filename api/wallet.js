@@ -42,11 +42,11 @@ function isOwnerAdmin(decoded) {
 }
 
 async function reservedPoints(db, uid) {
-  const snap = await db.collection("withdrawalRequests")
-    .where("uid", "==", uid)
-    .where("status", "in", ["pending", "approved"])
-    .get();
-  return snap.docs.reduce((sum, item) => sum + safePoints(item.data().pointsRequested), 0);
+  const snap = await db.collection("withdrawalRequests").where("uid", "==", uid).get();
+  return snap.docs.reduce((sum, item) => {
+    const data = item.data();
+    return sum + (["pending", "approved"].includes(data.status) ? safePoints(data.pointsRequested) : 0);
+  }, 0);
 }
 
 async function getBalance(db, uid) {
@@ -93,10 +93,11 @@ module.exports = async function handler(req, res) {
       const accountRef = db.collection("contractAccounts").doc(uid);
       const result = await db.runTransaction(async transaction => {
         const accountSnap = await transaction.get(accountRef);
-        const existingQuery = db.collection("withdrawalRequests")
-          .where("uid", "==", uid).where("status", "in", ["pending", "approved"]);
+        const existingQuery = db.collection("withdrawalRequests").where("uid", "==", uid);
         const existing = await transaction.get(existingQuery);
-        if (!existing.empty) throw new Error("OPEN_WITHDRAWAL_EXISTS");
+        if (existing.docs.some(item => ["pending", "approved"].includes(item.data().status))) {
+          throw new Error("OPEN_WITHDRAWAL_EXISTS");
+        }
         const points = safePoints(accountSnap.data()?.points);
         if (points < pointsRequested) throw new Error("INSUFFICIENT_POINTS");
         transaction.create(requestRef, {
@@ -140,7 +141,7 @@ module.exports = async function handler(req, res) {
           const accountSnap = await transaction.get(accountRef);
           const account = accountSnap.exists ? accountSnap.data() : {};
           const points = safePoints(account.points);
-          const debit = safePoints(request.pointsRequested);
+          const debit = safePoints(request.pointsRequested || Math.round(Number(request.amount) * POINTS_PER_USDT));
           if (!debit || points < debit) throw new Error("BALANCE_CHANGED");
           const ledgerRef = db.collection("contractLedger").doc("withdrawal_" + requestId);
           const ledgerSnap = await transaction.get(ledgerRef);
